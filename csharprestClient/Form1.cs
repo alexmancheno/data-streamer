@@ -25,9 +25,7 @@ namespace csharprestClient
         //apiDictionary.
         private Dictionary<string, NYSERecord> stockDictionary = new Dictionary<string, NYSERecord>(3000);
         private Dictionary<string, NYSERecord> stockQueue = new Dictionary<string, NYSERecord>(3000);
-        private string word = "Alex";
-
-
+ 
         public GoogleApiCaller()
         {
             InitializeComponent();
@@ -36,21 +34,32 @@ namespace csharprestClient
             updateRecords();
         }
 
-        public async void updateRecords()
+        public void updateRecords()
         {
 
-            var parent = Task.Factory.StartNew(async () =>
+            var parentTask = Task.Factory.StartNew(async () =>
             {
                 while(true)
                 {
                     await Task.Delay(60000);
-                    //update records first
-                    
 
-                    //create new records from queue
+                    var childTask = Task.Factory.StartNew(() =>
+                    {
+                        //update records first
+                        foreach (NYSERecord record in stockDictionary.Values)
+                        {
+                            record.update();
+                        }
 
+                        //create new records from queue
+                        foreach (string ticker in stockQueue.Keys)
+                        {
+                            stockQueue[ticker].initializeRecord();
+                            stockDictionary.Add(ticker, stockQueue[ticker]);
+                        }
 
-                    //remove records from queue and add to list
+                        stockQueue.Clear();
+                    });
                 }
             });
         }
@@ -73,12 +82,12 @@ namespace csharprestClient
                 if (apiDictionary[comboBoxOptions.Text].Contains("[PERIOD]"))
                     selectedRequest = selectedRequest.Replace("60", txtInterval.Text);
 
-                //create endpoint and add to queue 
+                //create ep and add to queue 
                 RestClient rClient = new RestClient();
                 rClient.endPoint = selectedRequest;
                 string filePath = txtFilePath.Text + txtFileName.Text;
 
-                stockQueue.Add(txtTicker.Text, new NYSERecord(rClient, filePath));
+                //stockQueue.Add(txtTicker.Text, new NYSERecord(rClient, filePath));
             } else
             {
                 debugOutPut("Stock is already on the records.");
@@ -147,7 +156,8 @@ namespace csharprestClient
                 fbd.Description = "Select a folder where the *.txt file will be saved";
                 if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                     txtFilePath.Text = fbd.SelectedPath + "\\";
-            } catch (Exception ex)
+            }
+             catch (Exception ex)
             {
                 debugOutPut("There was an error selecting the file: " + ex.ToString());
             } 
@@ -188,8 +198,6 @@ namespace csharprestClient
                     ListViewItem item = listActiveFiles.SelectedItems[0];
                     string fileName = item.SubItems[0].Text;
                     debugOutPut(fileName);
-                    //threadDictionary[fileName].stopUpdating();
-                    //threadDictionary.Remove(fileName);
                     listActiveFiles.Items.Remove(item);
                 } 
                 catch (Exception ex)
@@ -213,7 +221,7 @@ namespace csharprestClient
                 FolderBrowserDialog fbd = new FolderBrowserDialog();
                 fbd.RootFolder = Environment.SpecialFolder.Desktop;
                 fbd.Description = "Select a folder where the *.txt file will be saved";
-                if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (fbd.ShowDialog() == DialogResult.OK)
                     txtSaveLocation.Text = fbd.SelectedPath + "\\";
             }
             catch (Exception ex)
@@ -241,6 +249,48 @@ namespace csharprestClient
 
         private void btnCreateRecords_Click(object sender, EventArgs e)
         {
+            try
+            {
+                using (StreamReader sr = new StreamReader(txtListFile.Text))
+                {
+                    string currentLine;
+                    char[] seperatingChars = { '\t' };
+                    while ((currentLine = sr.ReadLine()) != null)
+                    {
+                        string[] words = currentLine.Split(seperatingChars, StringSplitOptions.RemoveEmptyEntries);
+                        string ep = apiDictionary["Google Finance"];
+                        ep = ep.Replace("[PERIOD]", "60");
+                        ep = ep.Replace("[TICKER]", words[0]);
+                        ep = ep.Replace("[DAYS]", "100000");
+                        RestClient rClient = new RestClient();
+                        rClient.endPoint = ep;
+
+                        stockQueue.Add(words[0], new NYSERecord(rClient, txtSaveLocation.Text, words[1]));
+                    }
+                    debugOutPut("File was read successfully!");
+                }
+            }
+            catch (Exception ex)
+            {
+                debugOutPut("There was an error reading the list file: " + ex.ToString());
+            }
+
+            //using (StreamReader sr = new StreamReader(@"C:\Users\Alex\Desktop\C#\delimiter-ex\delimiter-ex\TextFile1.txt"))
+            //{
+            //    string line;
+            //    char[] separatingChars = { '\t' };
+            //    while ((line = sr.ReadLine()) != null)
+            //    {
+            //        string[] words = line.Split(separatingChars, System.StringSplitOptions.RemoveEmptyEntries);
+            //        foreach (string s in words)
+            //        {
+            //            Console.Write(s + ",");
+            //        }
+            //        Console.WriteLine();
+            //    }
+            //    sr.Close();
+            //}
+            //Console.ReadLine();
 
         }
     }

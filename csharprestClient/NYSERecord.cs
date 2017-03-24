@@ -13,13 +13,40 @@ namespace csharprestClient
     {
         private RestClient rClient { get; set; }
         private string filePath { get; set; }
-        private string fileName { get; set; }
-        private int interval { get; set; }
 
-        public NYSERecord(RestClient r, string fp)
+        private string companyName { get; set; }
+
+        public NYSERecord(RestClient r, string fp, string cn)
         {
             rClient = r;
             filePath = fp;
+            companyName = cn;
+        }
+
+        public void initializeRecord()
+        {
+            HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                using (Stream responseStream = response.GetResponseStream())
+                {
+                    if (responseStream != null)
+                    {
+                        using (StreamReader reader = new StreamReader(responseStream))
+                        {
+                            using (StreamWriter sw = File.CreateText(filePath))
+                            {
+                                string currentLine = string.Empty;
+                                while (currentLine != null)
+                                {
+                                    currentLine = reader.ReadLine();
+                                    sw.WriteLine(currentLine);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public void update()
