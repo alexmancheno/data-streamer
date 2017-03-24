@@ -25,24 +25,7 @@ namespace csharprestClient
         //apiDictionary.
         private Dictionary<string, NYSERecord> stockDictionary = new Dictionary<string, NYSERecord>(3000);
         private Dictionary<string, NYSERecord> stockQueue = new Dictionary<string, NYSERecord>(3000);
-
-        class recordUpdater
-        {
-            private Dictionary<string, NYSERecord> s;
-            private Dictionary<string, NYSERecord> q;
-
-            public recordUpdater(Dictionary<string, NYSERecord> sd, Dictionary<string, NYSERecord> sq)
-            {
-                s = sd;
-                q = sq;
-            }
-            
-            public void update(string s)
-            {
-                Console.WriteLine(s);
-            }
-
-        }
+        private string word = "Alex";
 
 
         public GoogleApiCaller()
@@ -50,7 +33,26 @@ namespace csharprestClient
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
             apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=1d/json");
-            ParameterizedThreadStart pts = new ParameterizedThreadStart();
+            updateRecords();
+        }
+
+        public async void updateRecords()
+        {
+
+            var parent = Task.Factory.StartNew(async () =>
+            {
+                while(true)
+                {
+                    await Task.Delay(60000);
+                    //update records first
+                    
+
+                    //create new records from queue
+
+
+                    //remove records from queue and add to list
+                }
+            });
         }
 
         #region UI Event Handlers
