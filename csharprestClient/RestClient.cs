@@ -5,6 +5,7 @@ using System.Text;
 
 namespace csharprestClient
 {
+    //this class is to create object instances that can get json responses back from the http endpoint, e.g., Google API.
     public enum httpVerb
     {
         GET,
@@ -22,6 +23,7 @@ namespace csharprestClient
             httpMethod = httpVerb.GET;
         }
 
+        //this method should return the json object from the endpoint.
         public HttpWebResponse makeRequest()
         {
             string strResponseValue = string.Empty;

@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Net;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.Threading;
 using System.Text.RegularExpressions;
-
+using System.Collections.Specialized;
+using System.Collections;
+using System.Threading;
+ 
 namespace csharprestClient
 {
 
@@ -23,45 +18,15 @@ namespace csharprestClient
         //dictionary which holds the available API's
         public Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
         //apiDictionary.
-        private Dictionary<string, NYSERecord> stockDictionary = new Dictionary<string, NYSERecord>(3000);
-        private Dictionary<string, NYSERecord> stockQueue = new Dictionary<string, NYSERecord>(3000);
- 
+        private List<NYSERecord> stockList = new List<NYSERecord>(3500);
+        private List<string> stockTickerList = new List<string>(3500);
+        private List<NYSERecord> stockQueue = new List<NYSERecord>(3500);
+
         public GoogleApiCaller()
         {
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
             apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=1d/json");
-            updateRecords();
-        }
-
-        public void updateRecords()
-        {
-
-            var parentTask = Task.Factory.StartNew(async () =>
-            {
-                while(true)
-                {
-                    await Task.Delay(60000);
-
-                    var childTask = Task.Factory.StartNew(() =>
-                    {
-                        //update records first
-                        foreach (NYSERecord record in stockDictionary.Values)
-                        {
-                            record.update();
-                        }
-
-                        //create new records from queue
-                        foreach (string ticker in stockQueue.Keys)
-                        {
-                            stockQueue[ticker].initializeRecord();
-                            stockDictionary.Add(ticker, stockQueue[ticker]);
-                        }
-
-                        stockQueue.Clear();
-                    });
-                }
-            });
         }
 
         #region UI Event Handlers
@@ -70,8 +35,7 @@ namespace csharprestClient
         {
             Regex numsOnly = new Regex("^[0-9]*");
 
-
-            if (!stockDictionary.ContainsKey(txtTicker.Text))
+            if (!stockTickerList.Contains(txtTicker.Text))
             {
 
                 //replace substrings with user input from the desktop gui
@@ -247,7 +211,7 @@ namespace csharprestClient
             }
         }
 
-        private void btnCreateRecords_Click(object sender, EventArgs e)
+        private async void btnCreateRecords_Click(object sender, EventArgs e)
         {
             try
             {
@@ -264,34 +228,39 @@ namespace csharprestClient
                         ep = ep.Replace("[DAYS]", "100000");
                         RestClient rClient = new RestClient();
                         rClient.endPoint = ep;
-
-                        stockQueue.Add(words[0], new NYSERecord(rClient, txtSaveLocation.Text, words[1]));
+                        string filePath = txtSaveLocation.Text + words[0] + ".txt";
+                        //debugOutPut(filePath);
+                        stockQueue.Add(new NYSERecord(rClient, filePath, words[1]));
                     }
+
                     debugOutPut("File was read successfully!");
+                    debugOutPut("Starting tasks...");
+                    Task task1 = Task.Run(() =>
+                    {
+                        for (int i = 0; i < 1500 && stockQueue[i] != null; i++)
+                        {
+                            stockQueue[i].initializeRecord();
+                        }
+                    });
+
+                    Task task2 = Task.Run(() =>
+                    {
+                        for (int i = 1500; i < stockQueue.Count && stockQueue[i] != null; i++)
+                        {
+                            stockQueue[i].initializeRecord();
+                        }
+                    });
+
+                    Task.WaitAll(task1, task2);
+                    stockQueue.Clear();
+                    debugOutPut("Queue cleared.");
+                    
                 }
             }
             catch (Exception ex)
             {
                 debugOutPut("There was an error reading the list file: " + ex.ToString());
             }
-
-            //using (StreamReader sr = new StreamReader(@"C:\Users\Alex\Desktop\C#\delimiter-ex\delimiter-ex\TextFile1.txt"))
-            //{
-            //    string line;
-            //    char[] separatingChars = { '\t' };
-            //    while ((line = sr.ReadLine()) != null)
-            //    {
-            //        string[] words = line.Split(separatingChars, System.StringSplitOptions.RemoveEmptyEntries);
-            //        foreach (string s in words)
-            //        {
-            //            Console.Write(s + ",");
-            //        }
-            //        Console.WriteLine();
-            //    }
-            //    sr.Close();
-            //}
-            //Console.ReadLine();
-
         }
     }
 }

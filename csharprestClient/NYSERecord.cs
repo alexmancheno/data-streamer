@@ -51,27 +51,35 @@ namespace csharprestClient
 
         public void update()
         {
-            HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
-            if (response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                using (Stream responseStream = response.GetResponseStream())
+                HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
+                if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    if (responseStream != null)
+                    using (Stream responseStream = response.GetResponseStream())
                     {
-                        using (StreamReader reader = new StreamReader(responseStream))
+                        if (responseStream != null)
                         {
-                            using (StreamWriter sw = File.AppendText(filePath))
+                            using (StreamReader reader = new StreamReader(responseStream))
                             {
-                                string lastLine = string.Empty;
-                                while (!reader.EndOfStream)
+                                using (StreamWriter sw = File.AppendText(filePath))
                                 {
-                                    lastLine = reader.ReadLine();
+                                    string lastLine = string.Empty;
+                                    while (!reader.EndOfStream)
+                                    {
+                                        lastLine = reader.ReadLine();
+                                    }
+                                    sw.WriteLine(lastLine);
                                 }
-                                sw.WriteLine(lastLine);
                             }
                         }
                     }
                 }
+            }
+
+            catch (Exception e)
+            {
+
             }
         }
     }
