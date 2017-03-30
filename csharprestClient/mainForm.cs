@@ -7,17 +7,16 @@ using System.Text.RegularExpressions;
 using System.Collections.Specialized;
 using System.Collections;
 using System.Threading;
- 
+using System.Data.SqlClient;
+
 namespace csharprestClient
 {
 
     public partial class GoogleApiCaller : Form
     {
+        //properties of the form, which are used to perform the various operations of this same form
         private bool autoWrite = false;
-        //private Dictionary<string, autoWriter> threadDictionary = new Dictionary<string, autoWriter>();
-        //dictionary which holds the available API's
-        public Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
-        //apiDictionary.
+        private Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
         private List<NYSERecord> stockList = new List<NYSERecord>(3500);
         private List<string> stockTickerList = new List<string>(3500);
         private List<NYSERecord> stockQueue = new List<NYSERecord>(3500);
@@ -31,6 +30,7 @@ namespace csharprestClient
 
         #region UI Event Handlers
 
+        //this button is currently not used, but I'll fix it a little later
         private void cmdGO_Click(object sender, EventArgs e)
         {
             Regex numsOnly = new Regex("^[0-9]*");
@@ -61,6 +61,7 @@ namespace csharprestClient
 
         #endregion
 
+        //this is used to output to the 'log' in the first tab of the form, sort of like outputting to the terminal.
         public void debugOutPut(string strDebugText)
         {
             try
@@ -111,6 +112,7 @@ namespace csharprestClient
 
         }
 
+        //this is to select a save location for the single record from the first tab of the form.
         private void button1_Click(object sender, EventArgs e)
         {
             try
@@ -153,6 +155,8 @@ namespace csharprestClient
 
         }
 
+        //to remove a record from the 'active' record tab, but it's currently unused because of the Google server
+        //problem.
         private void btnRemove_Click(object sender, EventArgs e)
         {
             if (listActiveFiles.Items.Count > 0)
@@ -182,6 +186,7 @@ namespace csharprestClient
         {
             try
             {
+                
                 FolderBrowserDialog fbd = new FolderBrowserDialog();
                 fbd.RootFolder = Environment.SpecialFolder.Desktop;
                 fbd.Description = "Select a folder where the *.txt file will be saved";
@@ -211,6 +216,7 @@ namespace csharprestClient
             }
         }
 
+        //this is the button that does the heavy lifting: it first adds in all the files into 'stockQueue' 
         private async void btnCreateRecords_Click(object sender, EventArgs e)
         {
             try
@@ -230,11 +236,13 @@ namespace csharprestClient
                         rClient.endPoint = ep;
                         string filePath = txtSaveLocation.Text + words[0] + ".txt";
                         //debugOutPut(filePath);
-                        stockQueue.Add(new NYSERecord(rClient, filePath, words[1]));
+                        stockQueue.Add(new NYSERecord(rClient, filePath, words[1])); //create new NYSERecord with the current line's 
+                        //information, the ticker and company name, which is enough to create the database table and text file
                     }
 
                     debugOutPut("File was read successfully!");
                     debugOutPut("Starting tasks...");
+                    //a thread to handle items 0-1499 (if it's not a null reference) from the 'stockQueue':
                     Task task1 = Task.Run(() =>
                     {
                         for (int i = 0; i < 1500 && stockQueue[i] != null; i++)
@@ -243,6 +251,7 @@ namespace csharprestClient
                         }
                     });
 
+                    //another thread to handle items 1500 (if it's not a null reference) from the 'stockQueue':
                     Task task2 = Task.Run(() =>
                     {
                         for (int i = 1500; i < stockQueue.Count && stockQueue[i] != null; i++)
@@ -251,7 +260,7 @@ namespace csharprestClient
                         }
                     });
 
-                    Task.WaitAll(task1, task2);
+                    Task.WaitAll(task1, task2); //wait for threads to finish before clearing the stockQueue
                     stockQueue.Clear();
                     debugOutPut("Queue cleared.");
                     
@@ -261,6 +270,11 @@ namespace csharprestClient
             {
                 debugOutPut("There was an error reading the list file: " + ex.ToString());
             }
+        }
+
+        private void tabCreateRecord_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

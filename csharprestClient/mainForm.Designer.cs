@@ -49,14 +49,10 @@
             this.rbNo = new System.Windows.Forms.RadioButton();
             this.rbYes = new System.Windows.Forms.RadioButton();
             this.txtFileName = new System.Windows.Forms.TextBox();
-            this.txtInterval = new System.Windows.Forms.TextBox();
             this.txtResponse = new System.Windows.Forms.TextBox();
-            this.txtDays = new System.Windows.Forms.TextBox();
             this.txtFilePath = new System.Windows.Forms.TextBox();
             this.txtTicker = new System.Windows.Forms.TextBox();
             this.btnSelectFolder = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
@@ -75,6 +71,10 @@
             this.txtSaveLocation = new System.Windows.Forms.TextBox();
             this.txtListFile = new System.Windows.Forms.TextBox();
             this.lblListFile = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.txtInterval = new System.Windows.Forms.TextBox();
+            this.txtDays = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).BeginInit();
             this.tabActiveFiles.SuspendLayout();
             this.tabCreateRecord.SuspendLayout();
@@ -197,6 +197,7 @@
             this.tabCreateRecord.TabIndex = 0;
             this.tabCreateRecord.Text = "Create Record";
             this.tabCreateRecord.UseVisualStyleBackColor = true;
+            this.tabCreateRecord.Click += new System.EventHandler(this.tabCreateRecord_Click);
             // 
             // label8
             // 
@@ -239,14 +240,6 @@
             this.txtFileName.Size = new System.Drawing.Size(402, 31);
             this.txtFileName.TabIndex = 17;
             // 
-            // txtInterval
-            // 
-            this.txtInterval.Location = new System.Drawing.Point(1028, 39);
-            this.txtInterval.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtInterval.Name = "txtInterval";
-            this.txtInterval.Size = new System.Drawing.Size(385, 31);
-            this.txtInterval.TabIndex = 7;
-            // 
             // txtResponse
             // 
             this.txtResponse.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -258,14 +251,6 @@
             this.txtResponse.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtResponse.Size = new System.Drawing.Size(1507, 951);
             this.txtResponse.TabIndex = 1;
-            // 
-            // txtDays
-            // 
-            this.txtDays.Location = new System.Drawing.Point(1028, 97);
-            this.txtDays.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.txtDays.Name = "txtDays";
-            this.txtDays.Size = new System.Drawing.Size(385, 31);
-            this.txtDays.TabIndex = 8;
             // 
             // txtFilePath
             // 
@@ -292,28 +277,6 @@
             this.btnSelectFolder.Text = "Select Folder\r\n";
             this.btnSelectFolder.UseVisualStyleBackColor = true;
             this.btnSelectFolder.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(831, 36);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(189, 25);
-            this.label3.TabIndex = 6;
-            this.label3.Text = "Interval (seconds):";
-            this.label3.Click += new System.EventHandler(this.label3_Click);
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(952, 97);
-            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(67, 25);
-            this.label4.TabIndex = 9;
-            this.label4.Text = "Days:";
-            this.label4.Click += new System.EventHandler(this.label4_Click);
             // 
             // label5
             // 
@@ -497,6 +460,44 @@
             this.lblListFile.Text = "List File:";
             this.lblListFile.Click += new System.EventHandler(this.lblListFilePath_Click);
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(952, 97);
+            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(67, 25);
+            this.label4.TabIndex = 9;
+            this.label4.Text = "Days:";
+            this.label4.Click += new System.EventHandler(this.label4_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(831, 36);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(189, 25);
+            this.label3.TabIndex = 6;
+            this.label3.Text = "Interval (seconds):";
+            this.label3.Click += new System.EventHandler(this.label3_Click);
+            // 
+            // txtInterval
+            // 
+            this.txtInterval.Location = new System.Drawing.Point(1028, 39);
+            this.txtInterval.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.txtInterval.Name = "txtInterval";
+            this.txtInterval.Size = new System.Drawing.Size(385, 31);
+            this.txtInterval.TabIndex = 7;
+            // 
+            // txtDays
+            // 
+            this.txtDays.Location = new System.Drawing.Point(1028, 97);
+            this.txtDays.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.txtDays.Name = "txtDays";
+            this.txtDays.Size = new System.Drawing.Size(385, 31);
+            this.txtDays.TabIndex = 8;
+            // 
             // GoogleApiCaller
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
@@ -529,14 +530,10 @@
         private System.Windows.Forms.RadioButton rbNo;
         private System.Windows.Forms.RadioButton rbYes;
         private System.Windows.Forms.TextBox txtFileName;
-        private System.Windows.Forms.TextBox txtInterval;
         private System.Windows.Forms.TextBox txtResponse;
-        private System.Windows.Forms.TextBox txtDays;
         private System.Windows.Forms.TextBox txtFilePath;
         private System.Windows.Forms.TextBox txtTicker;
         private System.Windows.Forms.Button btnSelectFolder;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label6;
@@ -564,6 +561,10 @@
         private System.Windows.Forms.TextBox txtRecordsInterval;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.Button btnSelectListFile;
+        private System.Windows.Forms.TextBox txtInterval;
+        private System.Windows.Forms.TextBox txtDays;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
     }
 }
 

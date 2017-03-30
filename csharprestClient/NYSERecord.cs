@@ -18,9 +18,9 @@ namespace csharprestClient
 
         public NYSERecord(RestClient r, string fp, string cn)
         {
-            rClient = r;
-            filePath = fp;
-            companyName = cn;
+            rClient = r; //this object is used to make the api call to the Google Server and retrive JSON object
+            filePath = fp; //absolute file path to the text file
+            companyName = cn; //currently unused, but perhaps having company name can be useful a little later on
         }
 
         public void initializeRecord()
@@ -37,9 +37,10 @@ namespace csharprestClient
                             using (StreamWriter sw = File.CreateText(filePath))
                             {
                                 string currentLine = string.Empty;
-                                while (currentLine != null)
+                                while (currentLine != null) //write each line to the 'sw' text file.
                                 {
-                                    currentLine = reader.ReadLine();
+                                    
+                                    currentLine = reader.ReadLine(); 
                                     sw.WriteLine(currentLine);
                                 }
                             }
@@ -49,6 +50,7 @@ namespace csharprestClient
             }
         }
 
+        //this method will go unused since it seems Google will not let us spam API calls to their servers =(
         public void update()
         {
             try
