@@ -5,26 +5,47 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data.Sql;
+using System.Data.SqlClient;
 
 namespace csharprestClient
 {
+    
 
     class NYSERecord
     {
         private RestClient rClient { get; set; }
         private string filePath { get; set; }
 
-        private string companyName { get; set; }
+        private string ticker { get; set; }
 
-        public NYSERecord(RestClient r, string fp, string cn)
+        public NYSERecord(RestClient r, string fp, string t)
         {
             rClient = r; //this object is used to make the api call to the Google Server and retrive JSON object
             filePath = fp; //absolute file path to the text file
-            companyName = cn; //currently unused, but perhaps having company name can be useful a little later on
+            ticker = t; //currently unused, but perhaps having company name can be useful a little later on
         }
 
         public void initializeRecord()
         {
+            //create database table
+            using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
+            {
+                string sqlString = String.Format("create table {0} (business_date varchar(22), closing decimal, high decimal, low decimal, opening decimal, volume int);", ticker);
+                //string sqlString = String.Format("CREATE TABLE {0} (date varchar(20), close decimal, high decimal, low decimal, open decimal, volume int);", ticker);
+                using (SqlCommand cmd = new SqlCommand(sqlString, connection))
+                {
+                    try
+                    {
+                        connection.Open();
+                        cmd.ExecuteNonQuery();
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
+                }
+            }
             HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
             if (response.StatusCode == HttpStatusCode.OK)
             {
@@ -36,12 +57,26 @@ namespace csharprestClient
                         {
                             using (StreamWriter sw = File.CreateText(filePath))
                             {
+                                char[] separatingChars = { ',' };
                                 string currentLine = string.Empty;
-                                while (currentLine != null) //write each line to the 'sw' text file.
+                                string[] words;
+                                for (int i = 0; currentLine != null; i++) //write each line to the 'sw' text file.
                                 {
-                                    
-                                    currentLine = reader.ReadLine(); 
-                                    sw.WriteLine(currentLine);
+                                    currentLine = reader.ReadLine();
+                                    if (i >= 7)
+                                    {
+                                        words = currentLine.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
+                                        string sqli = String.Format("insert into {0} (business_date, closing, high, low, opening, volume) values ({1}, {2}, {3}, {4}, {5}, {6});", ticker, words[0], words[1], words[2], words[3], words[4], words[5]);
+                                        using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
+                                        {
+                                            using (SqlCommand sqlCmd = new SqlCommand(sqli, connection))
+                                            {
+                                                connection.Open();
+                                                sqlCmd.ExecuteNonQuery();
+                                            }
+                                        }
+                                    }
+                                    //sw.WriteLine(currentLine);
                                 }
                             }
                         }

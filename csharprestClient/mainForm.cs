@@ -235,8 +235,7 @@ namespace csharprestClient
                         RestClient rClient = new RestClient();
                         rClient.endPoint = ep;
                         string filePath = txtSaveLocation.Text + words[0] + ".txt";
-                        //debugOutPut(filePath);
-                        stockQueue.Add(new NYSERecord(rClient, filePath, words[1])); //create new NYSERecord with the current line's 
+                        stockQueue.Add(new NYSERecord(rClient, filePath, words[0])); //create new NYSERecord with the current line's 
                         //information, the ticker and company name, which is enough to create the database table and text file
                     }
 
@@ -245,22 +244,23 @@ namespace csharprestClient
                     //a thread to handle items 0-1499 (if it's not a null reference) from the 'stockQueue':
                     Task task1 = Task.Run(() =>
                     {
-                        for (int i = 0; i < 1500 && stockQueue[i] != null; i++)
+                        //stockQueue[0].initializeRecord();
+                        for (int i = 0; i < 1500 && i < stockQueue.Count; i++)
                         {
                             stockQueue[i].initializeRecord();
                         }
                     });
 
                     //another thread to handle items 1500 (if it's not a null reference) from the 'stockQueue':
-                    Task task2 = Task.Run(() =>
-                    {
-                        for (int i = 1500; i < stockQueue.Count && stockQueue[i] != null; i++)
-                        {
-                            stockQueue[i].initializeRecord();
-                        }
-                    });
+                    //Task task2 = Task.Run(() =>
+                    //{
+                    //    for (int i = 1500; i < stockQueue.Count && stockQueue[i] != null; i++)
+                    //    {
+                    //        stockQueue[i].initializeRecord();
+                    //    }
+                    //});
 
-                    Task.WaitAll(task1, task2); //wait for threads to finish before clearing the stockQueue
+                    Task.WaitAll(task1); //wait for threads to finish before clearing the stockQueue
                     stockQueue.Clear();
                     debugOutPut("Queue cleared.");
                     
