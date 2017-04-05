@@ -57,24 +57,24 @@ namespace csharprestClient
                         {
                             using (StreamWriter sw = File.CreateText(filePath))
                             {
-                                char[] separatingChars = { ',' };
-                                string currentLine = string.Empty;
-                                string[] words;
-                                for (int i = 0; (currentLine = reader.ReadLine()) != null; i++) //write each line to the 'sw' text file.
-                                {
-                                    if (i >= 7 )
-                                    {
-                                        words = currentLine.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
-                                        string sqli = String.Format("insert into {0} (business_date, closing, high, low, opening, volume) values ('{1}', {2}, {3}, {4}, {5}, {6});", ticker, words[0], words[1], words[2], words[3], words[4], words[5]);
-                                        using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
-                                        {
-                                            using (SqlCommand sqlCmd = new SqlCommand(sqli, connection))
-                                            {
-                                                connection.Open();
-                                                sqlCmd.ExecuteNonQuery();
-                                            }
-                                        }
-                                    }
+                                //char[] separatingChars = { ',' };
+                                //string currentLine = string.Empty;
+                                //string[] words;
+                                //for (int i = 0; (currentLine = reader.ReadLine()) != null; i++) //write each line to the 'sw' text file.
+                                //{
+                                //    if (i >= 7 )
+                                //    {
+                                //        words = currentLine.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
+                                //        string sqli = String.Format("insert into {0} (business_date, closing, high, low, opening, volume) values ('{1}', {2}, {3}, {4}, {5}, {6});", ticker, words[0], words[1], words[2], words[3], words[4], words[5]);
+                                //        using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
+                                //        {
+                                //            using (SqlCommand sqlCmd = new SqlCommand(sqli, connection))
+                                //            {
+                                //                connection.Open();
+                                //                sqlCmd.ExecuteNonQuery();
+                                //            }
+                                //        }
+                                //    }
                                     sw.WriteLine(currentLine);
                                 }
                             }
