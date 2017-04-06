@@ -25,7 +25,8 @@ namespace csharprestClient
         {
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
-            apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=1d/json");
+            apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=[DAYS]/csv");
+            apiDictionary.Add("Alphavantage", "http://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=[TICKER]&interval=1min&outputsize=full&apikey=2858");
         }
 
         #region UI Event Handlers
@@ -228,10 +229,10 @@ namespace csharprestClient
                     while ((currentLine = sr.ReadLine()) != null)
                     {
                         string[] words = currentLine.Split(seperatingChars, StringSplitOptions.RemoveEmptyEntries);
-                        string ep = apiDictionary["Google Finance"];
-                        ep = ep.Replace("[PERIOD]", "60");
+                        string ep = apiDictionary["Yahoo Finance"];
+                        //ep = ep.Replace("[PERIOD]", "15");
                         ep = ep.Replace("[TICKER]", words[0]);
-                        ep = ep.Replace("[DAYS]", "100000");
+                        ep = ep.Replace("[DAYS]", "15d");
                         RestClient rClient = new RestClient();
                         rClient.endPoint = ep;
                         string filePath = txtSaveLocation.Text + words[0] + ".txt";
@@ -248,7 +249,7 @@ namespace csharprestClient
                         Task task1 = Task.Run(() =>
                         {
                             //stockQueue[0].initializeRecord();
-                            for (int i = 0; i < 1500 && i < stockQueue.Count; i++)
+                            for (int i = 0; i < 3000 && i < stockQueue.Count; i++)
                             {
                                 stockQueue[i].initializeRecord();
                             }

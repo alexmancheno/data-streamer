@@ -29,23 +29,23 @@ namespace csharprestClient
         public void initializeRecord()
         {
             //create database table
-            using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
-            {
-                string sqlString = String.Format("create table {0} (business_date varchar(22), closing decimal, high decimal, low decimal, opening decimal, volume int);", ticker);
-                //string sqlString = String.Format("CREATE TABLE {0} (date varchar(20), close decimal, high decimal, low decimal, open decimal, volume int);", ticker);
-                using (SqlCommand cmd = new SqlCommand(sqlString, connection))
-                {
-                    try
-                    {
-                        connection.Open();
-                        cmd.ExecuteNonQuery();
-                    }
-                    catch (Exception ex)
-                    {
+            //using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
+            //{
+            //    string sqlString = String.Format("create table {0} (business_date varchar(22), closing decimal, high decimal, low decimal, opening decimal, volume int);", ticker);
+            //    //string sqlString = String.Format("CREATE TABLE {0} (date varchar(20), close decimal, high decimal, low decimal, open decimal, volume int);", ticker);
+            //    using (SqlCommand cmd = new SqlCommand(sqlString, connection))
+            //    {
+            //        try
+            //        {
+            //            connection.Open();
+            //            cmd.ExecuteNonQuery();
+            //        }
+            //        catch (Exception ex)
+            //        {
 
-                    }
-                }
-            }
+            //        }
+            //    }
+            //}
             HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
             if (response.StatusCode == HttpStatusCode.OK)
             {
@@ -58,31 +58,21 @@ namespace csharprestClient
                             using (StreamWriter sw = File.CreateText(filePath))
                             {
                                 //char[] separatingChars = { ',' };
-                                //string currentLine = string.Empty;
+                                string currentLine = string.Empty;
                                 //string[] words;
-                                //for (int i = 0; (currentLine = reader.ReadLine()) != null; i++) //write each line to the 'sw' text file.
-                                //{
-                                //    if (i >= 7 )
-                                //    {
-                                //        words = currentLine.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
-                                //        string sqli = String.Format("insert into {0} (business_date, closing, high, low, opening, volume) values ('{1}', {2}, {3}, {4}, {5}, {6});", ticker, words[0], words[1], words[2], words[3], words[4], words[5]);
-                                //        using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
-                                //        {
-                                //            using (SqlCommand sqlCmd = new SqlCommand(sqli, connection))
-                                //            {
-                                //                connection.Open();
-                                //                sqlCmd.ExecuteNonQuery();
-                                //            }
-                                //        }
-                                //    }
+                                for (int i = 0; (currentLine = reader.ReadLine()) != null; i++) //write each line to the 'sw' text file.
+                                {
                                     sw.WriteLine(currentLine);
+                                }
+
+                                    
                                 }
                             }
                         }
                     }
                 }
             }
-        }
+        
 
         //this method will go unused since it seems Google will not let us spam API calls to their servers =(
         public void update()
@@ -120,3 +110,19 @@ namespace csharprestClient
         }
     }
 }
+
+//currently unused, but might come useful: 
+
+
+//if (i >= 0)
+//{
+//words = currentLine.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
+//string sqli = String.Format("insert into {0} (business_date, closing, high, low, opening, volume) values ('{1}', {2}, {3}, {4}, {5}, {6});", ticker, words[0], words[1], words[2], words[3], words[4], words[5]);
+//using (SqlConnection connection = new SqlConnection(@"Data Source=Alex-PC\SQLExpress;Initial Catalog=numeraxial;Integrated Security=True"))
+//{
+//    using (SqlCommand sqlCmd = new SqlCommand(sqli, connection))
+//    {
+//        connection.Open();
+//        sqlCmd.ExecuteNonQuery();
+//    }
+//}
