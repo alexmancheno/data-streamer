@@ -10,16 +10,16 @@ using System.Data.SqlClient;
 
 namespace csharprestClient
 {
-    
 
-    class NYSERecord
+
+    class StockRecord
     {
         private RestClient rClient { get; set; }
         private string filePath { get; set; }
 
         private string ticker { get; set; }
 
-        public NYSERecord(RestClient r, string fp, string t)
+        public StockRecord(RestClient r, string fp, string t)
         {
             rClient = r; //this object is used to make the api call to the Google Server and retrive JSON object
             filePath = fp; //absolute file path to the text file
@@ -55,57 +55,68 @@ namespace csharprestClient
                     {
                         using (StreamReader reader = new StreamReader(responseStream))
                         {
-                            using (StreamWriter sw = File.CreateText(filePath))
+                            try
                             {
-                                //char[] separatingChars = { ',' };
-                                string currentLine = string.Empty;
-                                //string[] words;
-                                for (int i = 0; (currentLine = reader.ReadLine()) != null; i++) //write each line to the 'sw' text file.
+                                using (StreamWriter sw = File.CreateText((@filePath)))
                                 {
-                                    sw.WriteLine(currentLine);
+                                    string currentLine = string.Empty;
+                                    for (int i = 0; (currentLine = reader.ReadLine()) != null && currentLine != ""; i++)
+                                    {
+                                        sw.WriteLine(currentLine); //write each line to file
+                                    }
                                 }
-
-                                    
-                                }
+                            }
+                            catch (Exception e)
+                            {
+                                
                             }
                         }
                     }
                 }
             }
-        
+        }
+    
 
-        //this method will go unused since it seems Google will not let us spam API calls to their servers =(
         public void update()
         {
-            try
+            if (!File.Exists(filePath))
             {
-                HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
-                if (response.StatusCode == HttpStatusCode.OK)
+                initializeRecord();
+            }
+            else
+            {
+                try
                 {
-                    using (Stream responseStream = response.GetResponseStream())
+                    rClient.endPoint = rClient.endPoint.Replace("15d", "1d");
+                    HttpWebResponse response = (HttpWebResponse)rClient.makeRequest();
+                    if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        if (responseStream != null)
+                        using (Stream responseStream = response.GetResponseStream())
                         {
-                            using (StreamReader reader = new StreamReader(responseStream))
+                            if (responseStream != null)
                             {
-                                using (StreamWriter sw = File.AppendText(filePath))
+                                using (StreamReader reader = new StreamReader(responseStream))
                                 {
-                                    string lastLine = string.Empty;
-                                    while (!reader.EndOfStream)
+                                    using (StreamWriter sw = File.AppendText(filePath))
                                     {
-                                        lastLine = reader.ReadLine();
+                                        string currentLine = string.Empty;
+                                        for (int i = 0; (currentLine = reader.ReadLine()) != null && currentLine != ""; i++)
+                                        {
+                                            if (i >= 17)
+                                            {
+                                                sw.WriteLine(currentLine); //write each line to file
+                                            }
+                                        }
                                     }
-                                    sw.WriteLine(lastLine);
                                 }
                             }
                         }
                     }
                 }
-            }
+                catch (Exception e)
+                {
 
-            catch (Exception e)
-            {
-
+                }
             }
         }
     }

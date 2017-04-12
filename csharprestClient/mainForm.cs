@@ -17,9 +17,7 @@ namespace csharprestClient
         //properties of the form, which are used to perform the various operations of this same form
         private bool autoWrite = false;
         private Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
-        private List<NYSERecord> stockList = new List<NYSERecord>(3500);
-        private List<string> stockTickerList = new List<string>(3500);
-        private List<NYSERecord> stockQueue = new List<NYSERecord>(3500);
+        private List<StockRecord> yahooRecordList = new List<StockRecord>(40000); // the list Yahoo Finance's api will handle
 
         public GoogleApiCaller()
         {
@@ -27,6 +25,34 @@ namespace csharprestClient
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
             apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=[DAYS]/csv");
             apiDictionary.Add("Alphavantage", "http://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=[TICKER]&interval=1min&outputsize=full&apikey=2858");
+
+            //start updating periodically
+            startTimer();
+        }
+
+        private void startTimer()
+        {
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    if (DateTime.Now.Hour == 20 && DateTime.Now.Minute == 35)
+                    {
+                        debugOutPut("Updating records. It's now: " + DateTime.Now);
+                        updateRecords();
+                        debugOutPut("Finished updating records. It's now: " + DateTime.Now);
+                    }
+                    Thread.Sleep(20000);
+                }
+            });
+        }
+
+        private void updateRecords()
+        {
+            foreach (StockRecord record in yahooRecordList)
+            {
+                record.update();
+            }
         }
 
         #region UI Event Handlers
@@ -34,32 +60,21 @@ namespace csharprestClient
         //this button is currently not used, but I'll fix it a little later
         private void cmdGO_Click(object sender, EventArgs e)
         {
-            Regex numsOnly = new Regex("^[0-9]*");
+            //replace substrings with user input from the desktop gui
+            string selectedRequest = apiDictionary[comboBoxOptions.Text];
+            selectedRequest = selectedRequest.Replace("[TICKER]", txtTicker.Text);
+            if (apiDictionary[comboBoxOptions.Text].Contains("[DAYS]"))
+                selectedRequest = selectedRequest.Replace("12000", txtDays.Text);
+            if (apiDictionary[comboBoxOptions.Text].Contains("[PERIOD]"))
+                selectedRequest = selectedRequest.Replace("60", txtInterval.Text);
 
-            if (!stockTickerList.Contains(txtTicker.Text))
-            {
+            //create ep and add to queue 
+            RestClient rClient = new RestClient();
+            rClient.endPoint = selectedRequest;
+            string filePath = txtFilePath.Text + txtFileName.Text;
 
-                //replace substrings with user input from the desktop gui
-                string selectedRequest = apiDictionary[comboBoxOptions.Text];
-                selectedRequest = selectedRequest.Replace("[TICKER]", txtTicker.Text);
-                if (apiDictionary[comboBoxOptions.Text].Contains("[DAYS]"))
-                    selectedRequest = selectedRequest.Replace("12000", txtDays.Text);
-                if (apiDictionary[comboBoxOptions.Text].Contains("[PERIOD]"))
-                    selectedRequest = selectedRequest.Replace("60", txtInterval.Text);
-
-                //create ep and add to queue 
-                RestClient rClient = new RestClient();
-                rClient.endPoint = selectedRequest;
-                string filePath = txtFilePath.Text + txtFileName.Text;
-
-                //stockQueue.Add(txtTicker.Text, new NYSERecord(rClient, filePath));
-            } else
-            {
-                debugOutPut("Stock is already on the records.");
-            }
-        }
-
-
+            //stockQueue.Add(txtTicker.Text, new NYSERecord(rClient, filePath));
+        } 
         #endregion
 
         //this is used to output to the 'log' in the first tab of the form, sort of like outputting to the terminal.
@@ -224,6 +239,7 @@ namespace csharprestClient
             {
                 using (StreamReader sr = new StreamReader(txtListFile.Text))
                 {
+                    debugOutPut("File was read successfully..");
                     string currentLine;
                     char[] seperatingChars = { '\t' };
                     while ((currentLine = sr.ReadLine()) != null)
@@ -237,37 +253,10 @@ namespace csharprestClient
                         rClient.endPoint = ep;
                         string filePath = txtSaveLocation.Text + words[0] + ".txt";
                         words[0] = words[0].Replace('-', '_');
-                        stockQueue.Add(new NYSERecord(rClient, filePath, words[0])); //create new NYSERecord with the current line's 
-                        //information, the ticker and company name, which is enough to create the database table and text file
+                        yahooRecordList.Add(new StockRecord(rClient, filePath, words[0])); //create new StockRecord with the current line's 
+                        //information, the ticker and company name, which is enough to create the database table and text file.
                     }
-
-                    debugOutPut("File was read successfully!");
-                    debugOutPut("Starting tasks...");
-                    //a thread to handle items 0-1499 (if it's not a null reference) from the 'stockQueue':
-                    Task.Run(() =>
-                    {
-                        Task task1 = Task.Run(() =>
-                        {
-                            //stockQueue[0].initializeRecord();
-                            for (int i = 0; i < 3000 && i < stockQueue.Count; i++)
-                            {
-                                stockQueue[i].initializeRecord();
-                            }
-                        });
-
-                        //another thread to handle items 1500 (if it's not a null reference) from the 'stockQueue':
-                        //Task task2 = Task.Run(() =>
-                        //{
-                        //    for (int i = 1500; i < stockQueue.Count && stockQueue[i] != null; i++)
-                        //    {
-                        //        stockQueue[i].initializeRecord();
-                        //    }
-                        //});
-
-                        Task.WaitAll(task1); //wait for threads to finish before clearing the stockQueue
-                        stockQueue.Clear();
-                        debugOutPut("Queue cleared.");
-                    });
+                    debugOutPut("All the stocks have been added to the queue.");
                 }
             }
             catch (Exception ex)
