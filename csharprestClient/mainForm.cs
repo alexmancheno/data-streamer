@@ -18,6 +18,7 @@ namespace csharprestClient
         private bool autoWrite = false;
         private Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
         private List<StockRecord> yahooRecordList = new List<StockRecord>(40000); // the list Yahoo Finance's api will handle
+        private int updateHour, updateMinute;
 
         public GoogleApiCaller()
         {
@@ -36,22 +37,28 @@ namespace csharprestClient
             {
                 while (true)
                 {
-                    if (DateTime.Now.Hour == 20 && DateTime.Now.Minute == 35)
+                    
+                    if (DateTime.Now.Hour == updateHour && DateTime.Now.Minute == updateMinute)
                     {
-                        debugOutPut("Updating records. It's now: " + DateTime.Now);
+                        debugOutPut("-> Updating records. It's now: " + DateTime.Now);
                         updateRecords();
-                        debugOutPut("Finished updating records. It's now: " + DateTime.Now);
+                        debugOutPut("-> Finished updating records. It's now: " + DateTime.Now);
                     }
-                    Thread.Sleep(20000);
+                    Thread.Sleep(55000);
                 }
             });
         }
 
         private void updateRecords()
         {
-            foreach (StockRecord record in yahooRecordList)
+
+            using (StreamWriter sw = File.CreateText(txtLocationOfFilePaths.Text + "stock-file-paths.txt"))
             {
-                record.update();
+                foreach (StockRecord record in yahooRecordList)
+                {
+                    record.update();
+                    sw.WriteLine(record.getFilePath());
+                }
             }
         }
 
@@ -65,13 +72,13 @@ namespace csharprestClient
             selectedRequest = selectedRequest.Replace("[TICKER]", txtTicker.Text);
             if (apiDictionary[comboBoxOptions.Text].Contains("[DAYS]"))
                 selectedRequest = selectedRequest.Replace("12000", txtDays.Text);
-            if (apiDictionary[comboBoxOptions.Text].Contains("[PERIOD]"))
-                selectedRequest = selectedRequest.Replace("60", txtInterval.Text);
+            //if (apiDictionary[comboBoxOptions.Text].Contains("[PERIOD]"))
+            //    selectedRequest = selectedRequest.Replace("60", txtInterval.Text);
 
             //create ep and add to queue 
             RestClient rClient = new RestClient();
             rClient.endPoint = selectedRequest;
-            string filePath = txtFilePath.Text + txtFileName.Text;
+            string filePath = txtFilePath.Text + txtTicker.Text;
 
             //stockQueue.Add(txtTicker.Text, new NYSERecord(rClient, filePath));
         } 
@@ -141,7 +148,7 @@ namespace csharprestClient
             }
              catch (Exception ex)
             {
-                debugOutPut("There was an error selecting the file: " + ex.ToString());
+                debugOutPut("-> There was an error selecting the file: " + ex.ToString());
             } 
 
         }
@@ -186,7 +193,7 @@ namespace csharprestClient
                 } 
                 catch (Exception ex)
                 {
-                    debugOutPut("There was an error killing the process: " + ex.ToString());
+                    debugOutPut("-> There was an error killing the process: " + ex.ToString());
                 }
             }
 
@@ -211,7 +218,7 @@ namespace csharprestClient
             }
             catch (Exception ex)
             {
-                debugOutPut("There was an error selecting the save location: " + ex.ToString());
+                debugOutPut("-> There was an error selecting the save location: " + ex.ToString());
             }
         }
 
@@ -228,7 +235,7 @@ namespace csharprestClient
             }
             catch (Exception ex)
             {
-                debugOutPut("There was an error selecting the list file: " + ex.ToString());
+                debugOutPut("-> There was an error selecting the list file: " + ex.ToString());
             }
         }
 
@@ -239,7 +246,7 @@ namespace csharprestClient
             {
                 using (StreamReader sr = new StreamReader(txtListFile.Text))
                 {
-                    debugOutPut("File was read successfully..");
+                    debugOutPut("-> File was read successfully..");
                     string currentLine;
                     char[] seperatingChars = { '\t' };
                     while ((currentLine = sr.ReadLine()) != null)
@@ -256,12 +263,50 @@ namespace csharprestClient
                         yahooRecordList.Add(new StockRecord(rClient, filePath, words[0])); //create new StockRecord with the current line's 
                         //information, the ticker and company name, which is enough to create the database table and text file.
                     }
-                    debugOutPut("All the stocks have been added to the queue.");
+                    debugOutPut("-> All the stocks have been added to the queue.");
                 }
             }
             catch (Exception ex)
             {
-                debugOutPut("There was an error reading the list file: " + ex.ToString());
+                debugOutPut("-> There was an error reading the list file: " + ex.ToString());
+            }
+        }
+
+        private void txtListFile_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSetUpdateTime_Click(object sender, EventArgs e)
+        {
+            int h, m;
+            bool hourIsNumeric, minuteIsNumeric;
+            if ((hourIsNumeric = int.TryParse(txtHour.Text, out h)) && (minuteIsNumeric = int.TryParse(txtMinute.Text, out m)) && h >= 0 && h <= 23 && m >= 0 && m <= 59)
+            {
+                updateHour = h;
+                updateMinute = m;
+                debugOutPut("-> Current update-time: " + h + ":" + m);
+            }
+            else
+            {
+                debugOutPut("-> Incorrect update-time input.");
+            }
+        }
+
+        private void button1_Click_2(object sender, EventArgs e)
+        {
+            try
+            {
+
+                FolderBrowserDialog fbd = new FolderBrowserDialog();
+                fbd.RootFolder = Environment.SpecialFolder.Desktop;
+                fbd.Description = "Select a folder where the *.txt file will be saved";
+                if (fbd.ShowDialog() == DialogResult.OK)
+                    txtLocationOfFilePaths.Text = fbd.SelectedPath + "\\";
+            }
+            catch (Exception ex)
+            {
+                debugOutPut("-> There was an error selecting the save location: " + ex.ToString());
             }
         }
 

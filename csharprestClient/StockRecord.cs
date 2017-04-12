@@ -26,6 +26,11 @@ namespace csharprestClient
             ticker = t; //currently unused, but perhaps having company name can be useful a little later on
         }
 
+        public string getFilePath()
+        {
+            return filePath;
+        }
+
         public void initializeRecord()
         {
             //create database table
