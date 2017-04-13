@@ -63,6 +63,9 @@
             this.btnCreateRecord = new System.Windows.Forms.Button();
             this.tabCreateFile = new System.Windows.Forms.TabControl();
             this.tabCreateMultipleRecords = new System.Windows.Forms.TabPage();
+            this.txtLocationOfFilePaths = new System.Windows.Forms.TextBox();
+            this.button1 = new System.Windows.Forms.Button();
+            this.label8 = new System.Windows.Forms.Label();
             this.btnSelectListFile = new System.Windows.Forms.Button();
             this.btnCreateRecords = new System.Windows.Forms.Button();
             this.btnSelectSaveLocation = new System.Windows.Forms.Button();
@@ -70,10 +73,7 @@
             this.txtSaveLocation = new System.Windows.Forms.TextBox();
             this.txtListFile = new System.Windows.Forms.TextBox();
             this.lblListFile = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
-            this.label8 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
-            this.txtLocationOfFilePaths = new System.Windows.Forms.TextBox();
+            this.chkStartup = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).BeginInit();
             this.tabActiveFiles.SuspendLayout();
             this.tabCreateRecord.SuspendLayout();
@@ -85,7 +85,7 @@
             // 
             this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(86, 4);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
             // 
             // openFileDialog1
             // 
@@ -186,6 +186,7 @@
             this.tabCreateRecord.Controls.Add(this.label2);
             this.tabCreateRecord.Controls.Add(this.comboBoxOptions);
             this.tabCreateRecord.Controls.Add(this.btnCreateRecord);
+            this.tabCreateRecord.Controls.Add(this.chkStartup);
             this.tabCreateRecord.Location = new System.Drawing.Point(8, 39);
             this.tabCreateRecord.Name = "tabCreateRecord";
             this.tabCreateRecord.Padding = new System.Windows.Forms.Padding(3);
@@ -360,7 +361,6 @@
             this.tabCreateMultipleRecords.Controls.Add(this.txtLocationOfFilePaths);
             this.tabCreateMultipleRecords.Controls.Add(this.button1);
             this.tabCreateMultipleRecords.Controls.Add(this.label8);
-            this.tabCreateMultipleRecords.Controls.Add(this.label5);
             this.tabCreateMultipleRecords.Controls.Add(this.btnSelectListFile);
             this.tabCreateMultipleRecords.Controls.Add(this.btnCreateRecords);
             this.tabCreateMultipleRecords.Controls.Add(this.btnSelectSaveLocation);
@@ -374,6 +374,32 @@
             this.tabCreateMultipleRecords.TabIndex = 2;
             this.tabCreateMultipleRecords.Text = "Create Multiple Records";
             this.tabCreateMultipleRecords.UseVisualStyleBackColor = true;
+            // 
+            // txtLocationOfFilePaths
+            // 
+            this.txtLocationOfFilePaths.Location = new System.Drawing.Point(256, 347);
+            this.txtLocationOfFilePaths.Name = "txtLocationOfFilePaths";
+            this.txtLocationOfFilePaths.Size = new System.Drawing.Size(1131, 31);
+            this.txtLocationOfFilePaths.TabIndex = 12;
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(256, 402);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(360, 53);
+            this.button1.TabIndex = 11;
+            this.button1.Text = "Select File Path Save Location";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_2);
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(33, 347);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(217, 25);
+            this.label8.TabIndex = 10;
+            this.label8.Text = "Location of file paths:";
             // 
             // btnSelectListFile
             // 
@@ -439,40 +465,17 @@
             this.lblListFile.Text = "List File:";
             this.lblListFile.Click += new System.EventHandler(this.lblListFilePath_Click);
             // 
-            // label5
+            // chkStartup
             // 
-            this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(0, 0);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(70, 25);
-            this.label5.TabIndex = 9;
-            this.label5.Text = "label5";
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(33, 347);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(217, 25);
-            this.label8.TabIndex = 10;
-            this.label8.Text = "Location of file paths:";
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(256, 402);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(360, 53);
-            this.button1.TabIndex = 11;
-            this.button1.Text = "Select File Path Save Location";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click_2);
-            // 
-            // txtLocationOfFilePaths
-            // 
-            this.txtLocationOfFilePaths.Location = new System.Drawing.Point(256, 347);
-            this.txtLocationOfFilePaths.Name = "txtLocationOfFilePaths";
-            this.txtLocationOfFilePaths.Size = new System.Drawing.Size(1131, 31);
-            this.txtLocationOfFilePaths.TabIndex = 12;
+            this.chkStartup.AutoSize = true;
+            this.chkStartup.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.chkStartup.Location = new System.Drawing.Point(941, 38);
+            this.chkStartup.Name = "chkStartup";
+            this.chkStartup.Size = new System.Drawing.Size(256, 29);
+            this.chkStartup.TabIndex = 23;
+            this.chkStartup.Text = "Startup with Windows:";
+            this.chkStartup.UseVisualStyleBackColor = true;
+            this.chkStartup.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
             // 
             // GoogleApiCaller
             // 
@@ -539,7 +542,7 @@
         private System.Windows.Forms.TextBox txtLocationOfFilePaths;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.CheckBox chkStartup;
     }
 }
 

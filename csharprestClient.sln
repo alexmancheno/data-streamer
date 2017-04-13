@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "csharprestClient", "csharprestClient\csharprestClient.csproj", "{AF9EFEF3-AD2B-4833-9D3D-9B223DB23BA5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Numeraxial Data Streamer", "csharprestClient\Numeraxial Data Streamer.csproj", "{AF9EFEF3-AD2B-4833-9D3D-9B223DB23BA5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

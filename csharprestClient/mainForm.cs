@@ -3,29 +3,52 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.Text.RegularExpressions;
-using System.Collections.Specialized;
-using System.Collections;
 using System.Threading;
 using System.Data.SqlClient;
+using Microsoft.Win32;
 
 namespace csharprestClient
 {
 
     public partial class GoogleApiCaller : Form
-    {
+    { 
         //properties of the form, which are used to perform the various operations of this same form
-        private bool autoWrite = false;
         private Dictionary<string, string> apiDictionary = new Dictionary<string, string>();
-        private List<StockRecord> yahooRecordList = new List<StockRecord>(40000); // the list Yahoo Finance's api will handle
+        private List<StockRecord> yahooRecordList = new List<StockRecord>(45000); // the list Yahoo Finance's api will handle
         private int updateHour, updateMinute;
+        private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+        private DateTime[] holidays =
+        {
+            new DateTime(2017, 4, 14),  // Good Friday
+            new DateTime(2017, 5, 29),  // Memorial Day
+            new DateTime(2017, 7, 3),   // Early close (closes at 1pm)
+            new DateTime(2017, 7, 4),   // Independence Day
+            new DateTime(2017, 9, 4),   // Labor Day
+            new DateTime(2017, 11, 23), // Thanksgiving Day
+            new DateTime(2017, 11, 24), // Early close (closes at 1pm)
+            new DateTime(2017, 12, 25)  // Christmas Day
+        };
+        
 
         public GoogleApiCaller()
         {
+            reg.SetValue("Numeraxial Data Streamer", Application.ExecutablePath.ToString());
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
             apiDictionary.Add("Yahoo Finance", "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=[DAYS]/csv");
             apiDictionary.Add("Alphavantage", "http://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=[TICKER]&interval=1min&outputsize=full&apikey=2858");
+
+            // Check to see whether or not the app should be startup with Windows
+            if (reg.GetValue("Numeraxial Data Streamer") == null)
+            {
+                // If it's not checked, the app will not be in startup state
+                chkStartup.Checked = false;
+            }
+            else
+            {
+                // If it is checked, the app will be in startup state
+                chkStartup.Checked = true;
+            }
 
             //start updating periodically
             startTimer();
@@ -37,8 +60,7 @@ namespace csharprestClient
             {
                 while (true)
                 {
-                    
-                    if (DateTime.Now.Hour == updateHour && DateTime.Now.Minute == updateMinute)
+                    if ((DateTime.Now.Hour == updateHour && DateTime.Now.Minute == updateMinute) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday())
                     {
                         debugOutPut("-> Updating records. It's now: " + DateTime.Now);
                         updateRecords();
@@ -47,6 +69,16 @@ namespace csharprestClient
                     Thread.Sleep(55000);
                 }
             });
+        }
+
+        private bool todayIsNotHoliday()
+        {
+            for (int i = 0; i < holidays.Length; i++)
+            {
+                if (DateTime.Now.Date == holidays[i].Date)
+                    return false;
+            }
+            return true;
         }
 
         private void updateRecords()
@@ -156,16 +188,6 @@ namespace csharprestClient
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
 
-        }
-
-        private void radioButton1_CheckedChanged(object sender, EventArgs e)
-        {
-            autoWrite = true;
-        }
-
-        private void rbNo_CheckedChanged(object sender, EventArgs e)
-        {
-            autoWrite = false;
         }
 
         private void label3_Click(object sender, EventArgs e)
@@ -285,7 +307,7 @@ namespace csharprestClient
             {
                 updateHour = h;
                 updateMinute = m;
-                debugOutPut("-> Current update-time: " + h + ":" + m);
+                debugOutPut("-> Current update-time: " + txtHour.Text + ":" + txtMinute.Text);
             }
             else
             {
@@ -307,6 +329,20 @@ namespace csharprestClient
             catch (Exception ex)
             {
                 debugOutPut("-> There was an error selecting the save location: " + ex.ToString());
+            }
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkStartup.Checked)
+            {
+                // If the 'Update Daily' checkbox is checked, the app will startup with Windows
+                reg.SetValue("Numeraxial Data Streamer", Application.ExecutablePath);
+            }
+            else
+            {
+                // If it isn't, the app will not startup with Windows
+                reg.DeleteValue("Numeraxial Data Streamer");
             }
         }
 
