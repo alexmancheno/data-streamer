@@ -17,6 +17,8 @@ namespace csharprestClient
         private List<StockRecord> yahooRecordList = new List<StockRecord>(45000); // the list Yahoo Finance's api will handle
         private int updateHour, updateMinute;
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+
+        // Days this app should NOT update records (to avoid getting duplicate data)
         private DateTime[] holidays =
         {
             new DateTime(2017, 4, 14),  // Good Friday
@@ -268,7 +270,7 @@ namespace csharprestClient
             {
                 using (StreamReader sr = new StreamReader(txtListFile.Text))
                 {
-                    debugOutPut("-> File was read successfully..");
+                    debugOutPut("->" + txtListFile.Text +" was read successfully.");
                     string currentLine;
                     char[] seperatingChars = { '\t' };
                     while ((currentLine = sr.ReadLine()) != null)
@@ -285,12 +287,12 @@ namespace csharprestClient
                         yahooRecordList.Add(new StockRecord(rClient, filePath, words[0])); //create new StockRecord with the current line's 
                         //information, the ticker and company name, which is enough to create the database table and text file.
                     }
-                    debugOutPut("-> All the stocks have been added to the queue.");
+                    debugOutPut("-> Tickers from the list file have been added to queue.");
                 }
             }
             catch (Exception ex)
             {
-                debugOutPut("-> There was an error reading the list file: " + ex.ToString());
+                debugOutPut("-> There was an error " + txtListFile.Text+ ": " + ex.ToString());
             }
         }
 
