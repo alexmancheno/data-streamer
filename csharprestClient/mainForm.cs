@@ -17,6 +17,14 @@ namespace csharprestClient
         private List<StockRecord> yahooRecordList = new List<StockRecord>(45000); // the list Yahoo Finance's api will handle
         private int updateHour, updateMinute;
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+        private string configFolder = @"C:\Numeraxial Data Streamer";
+        private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
+
+        private string[] currentSettings = new string[5];
+        /**
+        currentSettings[0] --> string containing file paths to ticker-list text files, separated by commas
+        currentSettings[1] --> string containing update time (hour and minute, separated by comma)    
+        */
 
         // Days this app should NOT update records (to avoid getting duplicate data)
         private DateTime[] holidays =
@@ -52,9 +60,14 @@ namespace csharprestClient
                 chkStartup.Checked = true;
             }
 
-            //start updating periodically
+            // Read settings from previous state of the program (if it exists)
+            loadSettings(configFolder, settingsFile);
+
+            // Start updating periodically
             startTimer();
         }
+        
+        // ----Start of utility functions----- 
 
         private void startTimer()
         {
@@ -95,6 +108,98 @@ namespace csharprestClient
                 }
             }
         }
+
+        private void addListToQueue(string path)
+        {
+            try
+            {
+                using (StreamReader sr = new StreamReader(path))
+                {
+                    debugOutPut("->" + path + " was read successfully.");
+                    string currentLine;
+                    char[] seperatingChars = { '\t' };
+                    while ((currentLine = sr.ReadLine()) != null)
+                    {
+                        string[] words = currentLine.Split(seperatingChars, StringSplitOptions.RemoveEmptyEntries);
+                        string ep = apiDictionary["Yahoo Finance"];
+                        //ep = ep.Replace("[PERIOD]", "15");
+                        ep = ep.Replace("[TICKER]", words[0]);
+                        ep = ep.Replace("[DAYS]", "15d");
+                        RestClient rClient = new RestClient();
+                        rClient.endPoint = ep;
+                        string filePath = txtSaveLocation.Text + words[0] + ".txt";
+                        words[0] = words[0].Replace('-', '_');
+                        yahooRecordList.Add(new StockRecord(rClient, filePath, words[0])); //create new StockRecord with the current line's 
+                        //information, the ticker and company name, which is enough to create the database table and text file.
+                    }
+                    debugOutPut("-> Tickers from the list file have been added to queue.");
+                }
+            }
+            catch (Exception ex)
+            {
+                debugOutPut("-> There was an error " + txtListFile.Text + ": " + ex.ToString());
+            }
+        }
+
+        private void loadSettings(string cf, string sf) 
+        {
+            if (!Directory.Exists(cf))
+            {
+                Directory.CreateDirectory(cf);
+                if (!File.Exists(sf))
+                {
+                    File.Create(sf);
+                }
+            }
+            else
+            {
+                // Load previous session's settings to be our current session's settings
+                currentSettings = File.ReadAllLines(sf); // This will assign 'currentSettings' a new string array
+                
+                // Load each ticker-list text file to the queue
+                List<string> tickerLists = new List<string>(currentSettings[0].Split(','));
+                foreach (string list in tickerLists)
+                {
+                    addListToQueue(list);
+                }
+
+                // Load update-time from last session
+                string[] updateTime = currentSettings[1].Split(',');
+                setUpdateTime(updateTime[0], updateTime[1]);
+            }
+        }
+
+        private void setUpdateTime(string hour, string minute)
+        {
+            int h, m;
+            bool hourIsNumeric, minuteIsNumeric;
+            if ((hourIsNumeric = int.TryParse(hour, out h)) && (minuteIsNumeric = int.TryParse(minute, out m)) && h >= 0 && h <= 23 && m >= 0 && m <= 59)
+            {
+                updateHour = h;
+                updateMinute = m;
+                currentSettings[1] = hour + "," + minute;
+                debugOutPut("-> Current update-time: " + hour + ":" + minute);
+            }
+            else
+            {
+                debugOutPut("-> Incorrect update-time input.");
+            }
+        }
+
+        // ----End of utility functions----
+
+        // ----Start of overriden default C# functions----
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+
+            // Check to see if the user is allowed to close this form
+            
+            MessageBox.Show("This form cannot be closed yet!");
+            e.Cancel = true;
+            
+        }
+        // ----End of overriden default C# functions----
 
         #region UI Event Handlers
 
@@ -202,8 +307,7 @@ namespace csharprestClient
 
         }
 
-        //to remove a record from the 'active' record tab, but it's currently unused because of the Google server
-        //problem.
+        // To remove a list text file from the queue record tab
         private void btnRemove_Click(object sender, EventArgs e)
         {
             if (listActiveFiles.Items.Count > 0)
@@ -266,34 +370,7 @@ namespace csharprestClient
         //this is the button that does the heavy lifting: it first adds in all the files into 'stockQueue' 
         private async void btnCreateRecords_Click(object sender, EventArgs e)
         {
-            try
-            {
-                using (StreamReader sr = new StreamReader(txtListFile.Text))
-                {
-                    debugOutPut("->" + txtListFile.Text +" was read successfully.");
-                    string currentLine;
-                    char[] seperatingChars = { '\t' };
-                    while ((currentLine = sr.ReadLine()) != null)
-                    {
-                        string[] words = currentLine.Split(seperatingChars, StringSplitOptions.RemoveEmptyEntries);
-                        string ep = apiDictionary["Yahoo Finance"];
-                        //ep = ep.Replace("[PERIOD]", "15");
-                        ep = ep.Replace("[TICKER]", words[0]);
-                        ep = ep.Replace("[DAYS]", "15d");
-                        RestClient rClient = new RestClient();
-                        rClient.endPoint = ep;
-                        string filePath = txtSaveLocation.Text + words[0] + ".txt";
-                        words[0] = words[0].Replace('-', '_');
-                        yahooRecordList.Add(new StockRecord(rClient, filePath, words[0])); //create new StockRecord with the current line's 
-                        //information, the ticker and company name, which is enough to create the database table and text file.
-                    }
-                    debugOutPut("-> Tickers from the list file have been added to queue.");
-                }
-            }
-            catch (Exception ex)
-            {
-                debugOutPut("-> There was an error " + txtListFile.Text+ ": " + ex.ToString());
-            }
+            addListToQueue(txtListFile.Text);
         }
 
         private void txtListFile_TextChanged(object sender, EventArgs e)
@@ -303,18 +380,7 @@ namespace csharprestClient
 
         private void btnSetUpdateTime_Click(object sender, EventArgs e)
         {
-            int h, m;
-            bool hourIsNumeric, minuteIsNumeric;
-            if ((hourIsNumeric = int.TryParse(txtHour.Text, out h)) && (minuteIsNumeric = int.TryParse(txtMinute.Text, out m)) && h >= 0 && h <= 23 && m >= 0 && m <= 59)
-            {
-                updateHour = h;
-                updateMinute = m;
-                debugOutPut("-> Current update-time: " + txtHour.Text + ":" + txtMinute.Text);
-            }
-            else
-            {
-                debugOutPut("-> Incorrect update-time input.");
-            }
+            setUpdateTime(txtHour.Text, txtMinute.Text);
         }
 
         private void button1_Click_2(object sender, EventArgs e)
