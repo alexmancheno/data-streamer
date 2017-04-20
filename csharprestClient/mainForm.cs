@@ -26,6 +26,8 @@ namespace csharprestClient
         currentSettings[1] --> string containing update time (hour and minute, separated by comma)    
         */
 
+        private List<string> listFiles = new List<string>();
+
         // Days this app should NOT update records (to avoid getting duplicate data)
         private DateTime[] holidays =
         {
@@ -61,7 +63,7 @@ namespace csharprestClient
             }
 
             // Read settings from previous state of the program (if it exists)
-            loadSettings(configFolder, settingsFile);
+           // loadSettings(configFolder, settingsFile);
 
             // Start updating periodically
             startTimer();
@@ -104,7 +106,7 @@ namespace csharprestClient
                 foreach (StockRecord record in yahooRecordList)
                 {
                     record.update();
-                    sw.WriteLine(record.getFilePath());
+                    //sw.WriteLine(record.getFilePath());
                 }
             }
         }
@@ -133,6 +135,8 @@ namespace csharprestClient
                         //information, the ticker and company name, which is enough to create the database table and text file.
                     }
                     debugOutPut("-> Tickers from the list file have been added to queue.");
+
+                    listFiles.Add(path); // To keep track of list file paths to save to settings 
                 }
             }
             catch (Exception ex)
@@ -157,10 +161,10 @@ namespace csharprestClient
                 currentSettings = File.ReadAllLines(sf); // This will assign 'currentSettings' a new string array
                 
                 // Load each ticker-list text file to the queue
-                List<string> tickerLists = new List<string>(currentSettings[0].Split(','));
-                foreach (string list in tickerLists)
+                listFiles = new List<string>(currentSettings[0].Split(','));
+                foreach (string listFile in listFiles)
                 {
-                    addListToQueue(list);
+                    addListToQueue(listFile);
                 }
 
                 // Load update-time from last session
@@ -191,13 +195,17 @@ namespace csharprestClient
         // ----Start of overriden default C# functions----
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            base.OnFormClosing(e);
-
-            // Check to see if the user is allowed to close this form
-            
-            MessageBox.Show("This form cannot be closed yet!");
+            // Prevent form from closing  
             e.Cancel = true;
-            
+
+            //using (StreamWriter sw = File.CreateText(settingsFile))
+            //{
+            //    sw.WriteLine(String.Join(",", listFiles));
+            //    sw.WriteLine(currentSettings[1]);
+            //}
+
+            // Now close the form
+            e.Cancel = false;
         }
         // ----End of overriden default C# functions----
 
@@ -368,7 +376,7 @@ namespace csharprestClient
         }
 
         //this is the button that does the heavy lifting: it first adds in all the files into 'stockQueue' 
-        private async void btnCreateRecords_Click(object sender, EventArgs e)
+        private void btnCreateRecords_Click(object sender, EventArgs e)
         {
             addListToQueue(txtListFile.Text);
         }
