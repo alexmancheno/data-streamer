@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Data.SqlClient;
 using Microsoft.Win32;
+using System.Data;
 
 namespace csharprestClient
 {
@@ -19,6 +20,8 @@ namespace csharprestClient
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
         private string configFolder = @"C:\Numeraxial Data Streamer";
         private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
+
+        private string dbConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
         private string[] currentSettings = new string[5];
         /**
@@ -40,7 +43,16 @@ namespace csharprestClient
             new DateTime(2017, 11, 24), // Early close (closes at 1pm)
             new DateTime(2017, 12, 25)  // Christmas Day
         };
+
+
+        private int[,] closingTimes = new int[,]
+        {
+            {15, 33 }, // 9 PM for American exchanges
+            {13, 50 }
+            
+        };
         
+
 
         public GoogleApiCaller()
         {
@@ -73,18 +85,91 @@ namespace csharprestClient
 
         private void startTimer()
         {
+            bool[] wasUpdatedRecently = new bool[2];
+
             Task.Run(() =>
             {
                 while (true)
                 {
-                    if ((DateTime.Now.Hour == updateHour && DateTime.Now.Minute == updateMinute) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday())
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[0])
                     {
-                        debugOutPut("-> Updating records. It's now: " + DateTime.Now);
-                        updateRecords();
-                        debugOutPut("-> Finished updating records. It's now: " + DateTime.Now);
+                        debugOutPut("Fetching Alex..");
+                        startUpdating("Alex");
+                        wasUpdatedRecently[0] = true;
                     }
-                    Thread.Sleep(55000);
+                    else
+                    {
+                        wasUpdatedRecently[0] = false;
+                    }
+                    if ((DateTime.Now.Hour == closingTimes[1, 0] && DateTime.Now.Minute == closingTimes[1, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    {
+                        debugOutPut("Fetching Danny..");
+                        startUpdating("Danny");
+                        wasUpdatedRecently[1] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[1] = false;
+                    }
+                    Thread.Sleep(29000);
                 }
+
+            });
+
+        }
+
+        private void startUpdating(String exchange)
+        {
+            Task.Run(() =>
+            {
+                SqlDataReader reader;
+                using (SqlConnection connection = new SqlConnection(dbConnectionString))
+                {
+                    //string queryString = String.Format("SELECT [Ticker], Initialized FROM TickerTable WHERE Exchange = '{0}'", exchange);
+                    connection.Open();
+                    string queryString = "SELECT * FROM TickerTable;";
+                    using (SqlCommand cmd = new SqlCommand(queryString, connection))
+                    {
+                        try
+                        {
+                            reader = cmd.ExecuteReader();
+                            while (reader.Read())
+                            {
+                                debugOutPut("Loop!!");
+                                IDataRecord record = (IDataRecord)reader;
+                                debugOutPut((string)record[0]);
+                            }
+                        } 
+                        catch (Exception e)
+                        {
+                            debugOutPut(e.ToString());
+                        }
+                    }
+                }
+
+            
+                //using (SqlConnection connection = new SqlConnection(dbConnectionString))
+                //{
+                //    connection.Open();
+                //    SqlDataReader reader;
+                //    using (SqlCommand cmd = new SqlCommand(sqlString, connection))
+                //    {
+                //        try
+                //        {
+                //            reader = cmd.ExecuteReader();
+                //            debugOutPut("Success!");
+                //            while (reader.Read())
+                //            {
+                //                IDataRecord record = (IDataRecord)reader;
+                //                DbUpdater.updateTable();
+                //            }
+                //        }
+                //        catch (Exception e)
+                //        {
+                //            debugOutPut("There was an error with sql connection: " + e.ToString());
+                //        }
+                //    }
+                //}
             });
         }
 
