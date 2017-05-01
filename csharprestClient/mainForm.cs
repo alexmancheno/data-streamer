@@ -21,7 +21,8 @@ namespace csharprestClient
         private string configFolder = @"C:\Numeraxial Data Streamer";
         private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
 
-        private string dbConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        private string IntradayConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
         private string[] currentSettings = new string[5];
         /**
@@ -32,7 +33,7 @@ namespace csharprestClient
         private List<string> listFiles = new List<string>();
 
         // Days this app should NOT update records (to avoid getting duplicate data)
-        private DateTime[] holidays =
+        private DateTime[] americanHolidays =
         {
             new DateTime(2017, 4, 14),  // Good Friday
             new DateTime(2017, 5, 29),  // Memorial Day
@@ -47,7 +48,7 @@ namespace csharprestClient
 
         private int[,] closingTimes = new int[,]
         {
-            {15, 33 }, // 9 PM for American exchanges
+            {12, 35}, // For American exchanges.
             {13, 50 }
             
         };
@@ -91,19 +92,22 @@ namespace csharprestClient
             {
                 while (true)
                 {
+                    // Updater for American stocks
                     if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[0])
                     {
-                        debugOutPut("Fetching Alex..");
-                        startUpdating("Alex");
+                        debugOutPut("Fetching USA stocks. It's now: " + DateTime.Now);
+                        startUpdating("USA");
                         wasUpdatedRecently[0] = true;
                     }
                     else
                     {
                         wasUpdatedRecently[0] = false;
                     }
+
+                    // Updater for 
                     if ((DateTime.Now.Hour == closingTimes[1, 0] && DateTime.Now.Minute == closingTimes[1, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
                     {
-                        debugOutPut("Fetching Danny..");
+                        debugOutPut("Fetching ");
                         startUpdating("Danny");
                         wasUpdatedRecently[1] = true;
                     }
@@ -111,23 +115,22 @@ namespace csharprestClient
                     {
                         wasUpdatedRecently[1] = false;
                     }
-                    Thread.Sleep(29000);
+                    Thread.Sleep(30000);
                 }
 
             });
 
         }
 
-        private void startUpdating(String exchange)
+        private void startUpdating(string country)
         {
             Task.Run(() =>
             {
                 SqlDataReader reader;
-                using (SqlConnection connection = new SqlConnection(dbConnectionString))
+                using (SqlConnection connection = new SqlConnection(NumeraxialConnectionString))
                 {
-                    //string queryString = String.Format("SELECT [Ticker], Initialized FROM TickerTable WHERE Exchange = '{0}'", exchange);
+                    string queryString = String.Format("SELECT * FROM Stock_List1 WHERE Country = '{0}'", country);
                     connection.Open();
-                    string queryString = "SELECT * FROM TickerTable;";
                     using (SqlCommand cmd = new SqlCommand(queryString, connection))
                     {
                         try
@@ -135,9 +138,22 @@ namespace csharprestClient
                             reader = cmd.ExecuteReader();
                             while (reader.Read())
                             {
-                                debugOutPut("Loop!!");
+
                                 IDataRecord record = (IDataRecord)reader;
-                                debugOutPut((string)record[0]);
+                                
+                                if ((bool) record[7])   // If the table has been created, update it.
+                                {
+                                    //debugOutPut("Trying to update table.");
+                                    DbUpdater.updateTable(record, IntradayConnectionString, NumeraxialConnectionString);
+                                    //debugOutPut("Updating table..");
+                                }
+                                else                    // Else, pull last 2 weeks of data and create the table.
+                                {
+                                    //debugOutPut("Trying to create table.");
+                                    DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
+                                    //debugOutPut("Creating table..");
+                                }
+                                Thread.Sleep(10000);
                             }
                         } 
                         catch (Exception e)
@@ -146,38 +162,14 @@ namespace csharprestClient
                         }
                     }
                 }
-
-            
-                //using (SqlConnection connection = new SqlConnection(dbConnectionString))
-                //{
-                //    connection.Open();
-                //    SqlDataReader reader;
-                //    using (SqlCommand cmd = new SqlCommand(sqlString, connection))
-                //    {
-                //        try
-                //        {
-                //            reader = cmd.ExecuteReader();
-                //            debugOutPut("Success!");
-                //            while (reader.Read())
-                //            {
-                //                IDataRecord record = (IDataRecord)reader;
-                //                DbUpdater.updateTable();
-                //            }
-                //        }
-                //        catch (Exception e)
-                //        {
-                //            debugOutPut("There was an error with sql connection: " + e.ToString());
-                //        }
-                //    }
-                //}
             });
         }
 
         private bool todayIsNotHoliday()
         {
-            for (int i = 0; i < holidays.Length; i++)
+            for (int i = 0; i < americanHolidays.Length; i++)
             {
-                if (DateTime.Now.Date == holidays[i].Date)
+                if (DateTime.Now.Date == americanHolidays[i].Date)
                     return false;
             }
             return true;
