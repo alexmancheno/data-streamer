@@ -26,7 +26,46 @@ namespace csharprestClient
                     {
                         using (StreamReader reader = new StreamReader(responseStream))
                         {
-                            
+                            using (SqlConnection connection = new SqlConnection(IntradayConnectionString))
+                            {
+                                string nameOfTable = (string) record[2];
+                                SqlCommand command = new SqlCommand();
+                                command.Connection = connection;
+
+                                string line;
+                                char[] separatingChars = { ',' };
+                                string substringToDetect = "volume:";
+                                bool substringDetectedPreviousLine = false;
+
+                                connection.Open();
+
+                                for (int i = 0; (line = reader.ReadLine()) != null && line != ""; i++)
+                                {
+                                    string[] words = line.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
+                                    if (line.Contains("error"))
+                                    {
+                                        command.CommandText = String.Format("UPDATE Stock_List1 SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
+                                        break;
+                                    }
+
+
+                                    if (substringDetectedPreviousLine)
+                                    {
+                                        try
+                                        {
+                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Close], [High], [Low], [Open], [Volume]) values ('{1}', {2}, {3}, {4}, {5}, {6});", nameOfTable, words[0], words[1], words[2], words[3], words[4], words[5]);
+                                            command.ExecuteNonQuery();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Console.WriteLine("Error trying to insert into " + (string)record[1] + ": " + e.StackTrace);
+                                        }
+                                    }
+                                    if (line.Contains(substringToDetect)) substringDetectedPreviousLine = true;
+                                }
+
+                                command.Dispose();
+                            }
                         }
                     }
                 }
@@ -38,7 +77,7 @@ namespace csharprestClient
 
             RestClient rClient = new RestClient();
             
-            string httpString = @"http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=15d/csv";
+            string httpString = @"http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=1d/csv";
             rClient.endPoint = httpString.Replace("[TICKER]", (string) record[1]);
             Console.WriteLine("Ticker: " + (string)record[1]);
 
@@ -53,14 +92,14 @@ namespace csharprestClient
                         {
                             using (SqlConnection connection = new SqlConnection(IntradayConnectionString))
                             {
-                                string nameForTable = "TN_" + ((string)record[1]).Replace('-', 'd').Replace('_', 'u').Replace('.', 'p');
+                                string nameOfTable = (string) record[2];
 
-                                string createTableCommand = String.Format("CREATE TABLE {0} (Date varchar(60), [Close] smallmoney, [High] smallmoney, [Low] smallmoney, [Open] smallmoney, [Volume] int);", nameForTable);
+                                string createTableCommand = String.Format("CREATE TABLE {0} (Date varchar(60), [Close] smallmoney, [High] smallmoney, [Low] smallmoney, [Open] smallmoney, [Volume] int);", nameOfTable);
 
-                                string updateInitializedColumnString = String.Format("UPDATE Stock_List1 SET Initialized=1 WHERE Ticker = '{0}';", (string)record[1]);
+                                string updateInitializedColumnString = String.Format("UPDATE Stock_List1 SET Initialized = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
 
                                 SqlCommand command = new SqlCommand(createTableCommand, connection);
-                                Console.WriteLine("Attempting to create table for: " + nameForTable + ", Stock_ID: " + (int)record[0]);
+                                Console.WriteLine("Attempting to create table for: " + nameOfTable + ", Stock_ID: " + (int)record[0]);
                                 connection.Open();
                                 command.ExecuteNonQuery();
 
@@ -82,11 +121,17 @@ namespace csharprestClient
                                 {
                                     string[] words = line.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
 
+                                    if (line.Contains("error"))
+                                    {
+                                        command.CommandText = String.Format("UPDATE Stock_List1 SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
+                                        break;
+                                    }
+
                                     if (substringDetectedPreviousLine)
                                     {
                                         try
                                         {
-                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Close], [High], [Low], [Open], [Volume]) values ('{1}', {2}, {3}, {4}, {5}, {6});", nameForTable, words[0], words[1], words[2], words[3], words[4], words[5]);
+                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Close], [High], [Low], [Open], [Volume]) values ('{1}', {2}, {3}, {4}, {5}, {6});", nameOfTable, words[0], words[1], words[2], words[3], words[4], words[5]);
                                             command.ExecuteNonQuery();
                                         }
                                         catch (Exception e)
@@ -96,6 +141,7 @@ namespace csharprestClient
                                     }
                                     if (line.Contains(substringToDetect)) substringDetectedPreviousLine = true;
                                 }
+                                command.Dispose();
                             }
                         }
                     }

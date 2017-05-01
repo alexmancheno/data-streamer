@@ -48,8 +48,8 @@ namespace csharprestClient
 
         private int[,] closingTimes = new int[,]
         {
-            {12, 35}, // For American exchanges.
-            {13, 50 }
+            {16, 24}, // For American exchanges.
+            {13, 50 } // For German exchanges
             
         };
         
@@ -86,13 +86,13 @@ namespace csharprestClient
 
         private void startTimer()
         {
-            bool[] wasUpdatedRecently = new bool[2];
+            bool[] wasUpdatedRecently = new bool[3];
 
             Task.Run(() =>
             {
                 while (true)
                 {
-                    // Updater for American stocks
+                    // Updater for American stocks.
                     if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[0])
                     {
                         debugOutPut("Fetching USA stocks. It's now: " + DateTime.Now);
@@ -104,16 +104,28 @@ namespace csharprestClient
                         wasUpdatedRecently[0] = false;
                     }
 
-                    // Updater for 
-                    if ((DateTime.Now.Hour == closingTimes[1, 0] && DateTime.Now.Minute == closingTimes[1, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    // Updater for German stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
                     {
-                        debugOutPut("Fetching ");
-                        startUpdating("Danny");
+                        debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
+                        startUpdating("Germany");
                         wasUpdatedRecently[1] = true;
                     }
                     else
                     {
                         wasUpdatedRecently[1] = false;
+                    }
+
+                    // Updater for Indian stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
+                    {
+                        debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
+                        startUpdating("India");
+                        wasUpdatedRecently[2] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[2] = false;
                     }
                     Thread.Sleep(30000);
                 }
@@ -141,7 +153,7 @@ namespace csharprestClient
 
                                 IDataRecord record = (IDataRecord)reader;
                                 
-                                if ((bool) record[7])   // If the table has been created, update it.
+                                if ((bool) record[8])   // If the table has been created, update it.
                                 {
                                     //debugOutPut("Trying to update table.");
                                     DbUpdater.updateTable(record, IntradayConnectionString, NumeraxialConnectionString);
@@ -153,7 +165,7 @@ namespace csharprestClient
                                     DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
                                     //debugOutPut("Creating table..");
                                 }
-                                Thread.Sleep(10000);
+                                //Thread.Sleep(10000);
                             }
                         } 
                         catch (Exception e)
