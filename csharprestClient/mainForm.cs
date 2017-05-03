@@ -7,6 +7,7 @@ using System.Threading;
 using System.Data.SqlClient;
 using Microsoft.Win32;
 using System.Data;
+using System.Configuration;
 
 namespace csharprestClient
 {
@@ -20,9 +21,14 @@ namespace csharprestClient
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
         private string configFolder = @"C:\Numeraxial Data Streamer";
         private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
+        private static ConnectionStringSettings IntradayConnection = ConfigurationManager.ConnectionStrings["Intraday"];
+        private static ConnectionStringSettings NumeraxialConnection = ConfigurationManager.ConnectionStrings["Numeraxial"];
 
-        private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
-        private string IntradayConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        private string NumeraxialConnectionString = NumeraxialConnection.ConnectionString;
+        //private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
+        private string IntradayConnectionString = IntradayConnection.ConnectionString;
+        //private string IntradayConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
         private string[] currentSettings = new string[5];
         /**
@@ -48,7 +54,7 @@ namespace csharprestClient
 
         private int[,] closingTimes = new int[,]
         {
-            {16, 24}, // For American exchanges.
+            {11, 06}, // For American exchanges.
             {13, 50 } // For German exchanges
             
         };
@@ -57,6 +63,7 @@ namespace csharprestClient
 
         public GoogleApiCaller()
         {
+
             reg.SetValue("Numeraxial Data Streamer", Application.ExecutablePath.ToString());
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
@@ -87,6 +94,8 @@ namespace csharprestClient
         private void startTimer()
         {
             bool[] wasUpdatedRecently = new bool[3];
+            debugOutPut(NumeraxialConnectionString);
+            debugOutPut(IntradayConnectionString);
 
             Task.Run(() =>
             {
@@ -104,29 +113,29 @@ namespace csharprestClient
                         wasUpdatedRecently[0] = false;
                     }
 
-                    // Updater for German stocks.
-                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
-                    {
-                        debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
-                        startUpdating("Germany");
-                        wasUpdatedRecently[1] = true;
-                    }
-                    else
-                    {
-                        wasUpdatedRecently[1] = false;
-                    }
+                    //// Updater for German stocks.
+                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    //{
+                    //    debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
+                    //    startUpdating("Germany");
+                    //    wasUpdatedRecently[1] = true;
+                    //}
+                    //else
+                    //{
+                    //    wasUpdatedRecently[1] = false;
+                    //}
 
-                    // Updater for Indian stocks.
-                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
-                    {
-                        debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
-                        startUpdating("India");
-                        wasUpdatedRecently[2] = true;
-                    }
-                    else
-                    {
-                        wasUpdatedRecently[2] = false;
-                    }
+                    //// Updater for Indian stocks.
+                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
+                    //{
+                    //    debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
+                    //    startUpdating("India");
+                    //    wasUpdatedRecently[2] = true;
+                    //}
+                    //else
+                    //{
+                    //    wasUpdatedRecently[2] = false;
+                    //}
                     Thread.Sleep(30000);
                 }
 
@@ -165,7 +174,7 @@ namespace csharprestClient
                                     DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
                                     //debugOutPut("Creating table..");
                                 }
-                                //Thread.Sleep(10000);
+                                Thread.Sleep(10000);
                             }
                         } 
                         catch (Exception e)

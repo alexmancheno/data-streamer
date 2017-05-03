@@ -12,6 +12,12 @@ namespace csharprestClient
 {
     class DbUpdater
     {
+        private static DateTime FromUnixTime(long unixTime)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return epoch.AddSeconds(unixTime);
+        }
+
         public static void updateTable(IDataRecord record, string IntradayConnectionString, string NumeraxialConnectionString)
         {
             RestClient rClient = new RestClient();
@@ -48,12 +54,15 @@ namespace csharprestClient
                                         break;
                                     }
 
-
                                     if (substringDetectedPreviousLine)
                                     {
                                         try
                                         {
-                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Close], [High], [Low], [Open], [Volume]) values ('{1}', {2}, {3}, {4}, {5}, {6});", nameOfTable, words[0], words[1], words[2], words[3], words[4], words[5]);
+                                            DateTime date = FromUnixTime(Convert.ToInt64(words[0]));
+                                            string formattedDate = date.ToString("d");
+                                            string formattedTime = date.ToString("HH:mm:ss");
+
+                                            command.CommandText = String.Format("INSERT INTO {0} (Stock_ID[Date] date, [Time] time, [Close], [High], [Low], [Open], [Volume]) values ('{1}', '{2}', {3}, {4}, {5}, {6});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
                                             command.ExecuteNonQuery();
                                         }
                                         catch (Exception e)
@@ -94,7 +103,7 @@ namespace csharprestClient
                             {
                                 string nameOfTable = (string) record[2];
 
-                                string createTableCommand = String.Format("CREATE TABLE {0} (Date varchar(60), [Close] smallmoney, [High] smallmoney, [Low] smallmoney, [Open] smallmoney, [Volume] int);", nameOfTable);
+                                string createTableCommand = String.Format("CREATE TABLE {0} ([Date] date, [Time] time, [Close] smallmoney, [High] smallmoney, [Low] smallmoney, [Open] smallmoney, [Volume] int);", nameOfTable);
 
                                 string updateInitializedColumnString = String.Format("UPDATE Stock_List1 SET Initialized = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
 
@@ -115,6 +124,7 @@ namespace csharprestClient
                                 string line;
                                 char[] separatingChars = { ',' };
                                 string substringToDetect = "volume:";
+                                int gmtOffset = 0;
                                 bool substringDetectedPreviousLine = false;
 
                                 for (int i = 0; (line = reader.ReadLine()) != null && line != ""; i++)
@@ -127,16 +137,30 @@ namespace csharprestClient
                                         break;
                                     }
 
+                                    else if (line.Contains("gmtoffset:"))
+                                    {
+                                        char[] separatingChar = { ':' };
+                                        string[] arrayContainingOffset = "gmtoffset:-14400".Split(separatingChar, StringSplitOptions.RemoveEmptyEntries);
+                                        gmtOffset = Convert.ToInt32(arrayContainingOffset[1]);
+                                    }
+
                                     if (substringDetectedPreviousLine)
                                     {
                                         try
                                         {
-                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Close], [High], [Low], [Open], [Volume]) values ('{1}', {2}, {3}, {4}, {5}, {6});", nameOfTable, words[0], words[1], words[2], words[3], words[4], words[5]);
+
+                                            DateTime date = FromUnixTime(Convert.ToInt64(words[0]) + gmtOffset);
+                                            string formattedDate = date.ToString("d");
+                                            string formattedTime = date.ToString("HH:mm:ss");
+
+                                            Console.WriteLine(formattedDate + "     " + formattedTime);
+
+                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Time], [Close], [High], [Low], [Open], [Volume]) VALUES ('{1}', '{2}', {3}, {4}, {5}, {6}, {7});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
                                             command.ExecuteNonQuery();
                                         }
                                         catch (Exception e)
                                         {
-                                            Console.WriteLine("Error trying to insert into " + (string) record[1] + ": "+ e.StackTrace);
+                                            Console.WriteLine("Error trying to insert into \n"+ (string) record[1] + ": "+ e.StackTrace);
                                         }
                                     }
                                     if (line.Contains(substringToDetect)) substringDetectedPreviousLine = true;
