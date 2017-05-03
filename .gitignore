@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Machine-specific files (written by Alex)
-*.config
+App.config
 connectionStrings.config
 
 # User-specific files
