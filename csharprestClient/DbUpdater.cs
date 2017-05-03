@@ -42,6 +42,7 @@ namespace csharprestClient
                                 char[] separatingChars = { ',' };
                                 string substringToDetect = "volume:";
                                 bool substringDetectedPreviousLine = false;
+                                int gmtOffset = 0;
 
                                 connection.Open();
 
@@ -54,6 +55,13 @@ namespace csharprestClient
                                         break;
                                     }
 
+                                    else if (line.Contains("gmtoffset:"))
+                                    {
+                                        char[] separatingChar = { ':' };
+                                        string[] arrayContainingOffset = "gmtoffset:-14400".Split(separatingChar, StringSplitOptions.RemoveEmptyEntries);
+                                        gmtOffset = Convert.ToInt32(arrayContainingOffset[1]);
+                                    }
+
                                     if (substringDetectedPreviousLine)
                                     {
                                         try
@@ -62,7 +70,7 @@ namespace csharprestClient
                                             string formattedDate = date.ToString("d");
                                             string formattedTime = date.ToString("HH:mm:ss");
 
-                                            command.CommandText = String.Format("INSERT INTO {0} (Stock_ID[Date] date, [Time] time, [Close], [High], [Low], [Open], [Volume]) values ('{1}', '{2}', {3}, {4}, {5}, {6});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
+                                            command.CommandText = String.Format("INSERT INTO {0} ([Date] date, [Time] time, [Close], [High], [Low], [Open], [Volume]) values ('{1}', '{2}', {3}, {4}, {5}, {6});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
                                             command.ExecuteNonQuery();
                                         }
                                         catch (Exception e)
@@ -148,7 +156,6 @@ namespace csharprestClient
                                     {
                                         try
                                         {
-
                                             DateTime date = FromUnixTime(Convert.ToInt64(words[0]) + gmtOffset);
                                             string formattedDate = date.ToString("d");
                                             string formattedTime = date.ToString("HH:mm:ss");

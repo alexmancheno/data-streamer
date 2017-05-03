@@ -19,11 +19,10 @@ namespace csharprestClient
         private List<StockRecord> yahooRecordList = new List<StockRecord>(45000); // the list Yahoo Finance's api will handle
         private int updateHour, updateMinute;
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-        private string configFolder = @"C:\Numeraxial Data Streamer";
-        private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
         private static ConnectionStringSettings IntradayConnection = ConfigurationManager.ConnectionStrings["Intraday"];
         private static ConnectionStringSettings NumeraxialConnection = ConfigurationManager.ConnectionStrings["Numeraxial"];
-
+        //private static string configPath = (Directory.GetCurrentDirectory().Replace(@"bin\Debug", @"connectionStrings.config"));
+        
         private string NumeraxialConnectionString = NumeraxialConnection.ConnectionString;
         //private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
@@ -49,21 +48,19 @@ namespace csharprestClient
             new DateTime(2017, 11, 23), // Thanksgiving Day
             new DateTime(2017, 11, 24), // Early close (closes at 1pm)
             new DateTime(2017, 12, 25)  // Christmas Day
+            
         };
 
 
         private int[,] closingTimes = new int[,]
         {
-            {12, 01}, // For American exchanges.
+            {16, 30}, // For American exchanges.
             {13, 50 } // For German exchanges
             
         };
         
-
-
         public GoogleApiCaller()
         {
-
             reg.SetValue("Numeraxial Data Streamer", Application.ExecutablePath.ToString());
             InitializeComponent();
             apiDictionary.Add("Google Finance", "https://www.google.com/finance/getprices?i=[PERIOD]&p=[DAYS]d&f=d,o,h,l,c,v&def=cpct&q=[TICKER]");
@@ -94,9 +91,8 @@ namespace csharprestClient
         private void startTimer()
         {
             bool[] wasUpdatedRecently = new bool[3];
-            debugOutPut(NumeraxialConnectionString);
-            debugOutPut(IntradayConnectionString);
-
+            //debugOutPut(NumeraxialConnectionString);
+            //debugOutPut(IntradayConnectionString);
             Task.Run(() =>
             {
                 while (true)
@@ -108,34 +104,35 @@ namespace csharprestClient
                         startUpdating("USA");
                         wasUpdatedRecently[0] = true;
                     }
+
                     else
                     {
                         wasUpdatedRecently[0] = false;
                     }
 
-                    //// Updater for German stocks.
-                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
-                    //{
-                    //    debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
-                    //    startUpdating("Germany");
-                    //    wasUpdatedRecently[1] = true;
-                    //}
-                    //else
-                    //{
-                    //    wasUpdatedRecently[1] = false;
-                    //}
+                    // Updater for German stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    {
+                        debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
+                        startUpdating("Germany");
+                        wasUpdatedRecently[1] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[1] = false;
+                    }
 
-                    //// Updater for Indian stocks.
-                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
-                    //{
-                    //    debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
-                    //    startUpdating("India");
-                    //    wasUpdatedRecently[2] = true;
-                    //}
-                    //else
-                    //{
-                    //    wasUpdatedRecently[2] = false;
-                    //}
+                    // Updater for Indian stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
+                    {
+                        debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
+                        startUpdating("India");
+                        wasUpdatedRecently[2] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[2] = false;
+                    }
                     Thread.Sleep(30000);
                 }
 
@@ -174,7 +171,7 @@ namespace csharprestClient
                                     DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
                                     //debugOutPut("Creating table..");
                                 }
-                                Thread.Sleep(10000);
+                                //Thread.Sleep(10000);
                             }
                         } 
                         catch (Exception e)
@@ -240,34 +237,6 @@ namespace csharprestClient
             catch (Exception ex)
             {
                 debugOutPut("-> There was an error " + txtListFile.Text + ": " + ex.ToString());
-            }
-        }
-
-        private void loadSettings(string cf, string sf) 
-        {
-            if (!Directory.Exists(cf))
-            {
-                Directory.CreateDirectory(cf);
-                if (!File.Exists(sf))
-                {
-                    File.Create(sf);
-                }
-            }
-            else
-            {
-                // Load previous session's settings to be our current session's settings
-                currentSettings = File.ReadAllLines(sf); // This will assign 'currentSettings' a new string array
-                
-                // Load each ticker-list text file to the queue
-                listFiles = new List<string>(currentSettings[0].Split(','));
-                foreach (string listFile in listFiles)
-                {
-                    addListToQueue(listFile);
-                }
-
-                // Load update-time from last session
-                string[] updateTime = currentSettings[1].Split(',');
-                setUpdateTime(updateTime[0], updateTime[1]);
             }
         }
 
