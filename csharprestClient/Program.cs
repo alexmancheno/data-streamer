@@ -14,7 +14,6 @@ namespace csharprestClient
         [STAThread]
         static void Main()
         {
-            
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             GoogleApiCaller apiCaller = new GoogleApiCaller();

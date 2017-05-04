@@ -33,6 +33,7 @@ namespace csharprestClient
 
         public void initializeRecord()
         {
+            
             //using (StreamWriter sw = File.CreateText((@filePath)))
             //{
             //    string currentLine = string.Empty;
@@ -73,11 +74,11 @@ namespace csharprestClient
                             {
                                 using (StreamWriter sw = File.CreateText((@filePath)))
                                 {
-                                    string currentLine = string.Empty;
-                                    for (int i = 0; (currentLine = reader.ReadLine()) != null && currentLine != ""; i++)
-                                    {
-                                        sw.WriteLine(currentLine); //write each line to file
-                                    }
+                                    //string currentLine = string.Empty;
+                                    //for (int i = 0; (currentLine = reader.ReadLine()) != null && currentLine != ""; i++)
+                                    //{
+                                    //    sw.WriteLine(currentLine); //write each line to file
+                                    //}
                                 }
                             }
                             catch (Exception e)

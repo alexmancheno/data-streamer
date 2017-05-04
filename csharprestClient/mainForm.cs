@@ -6,6 +6,8 @@ using System.IO;
 using System.Threading;
 using System.Data.SqlClient;
 using Microsoft.Win32;
+using System.Data;
+using System.Configuration;
 
 namespace csharprestClient
 {
@@ -17,8 +19,15 @@ namespace csharprestClient
         private List<StockRecord> yahooRecordList = new List<StockRecord>(45000); // the list Yahoo Finance's api will handle
         private int updateHour, updateMinute;
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
-        private string configFolder = @"C:\Numeraxial Data Streamer";
-        private string settingsFile = @"C:\Numeraxial Data Streamer\settings.txt";
+        private static ConnectionStringSettings IntradayConnection = ConfigurationManager.ConnectionStrings["Intraday"];
+        private static ConnectionStringSettings NumeraxialConnection = ConfigurationManager.ConnectionStrings["Numeraxial"];
+        //private static string configPath = (Directory.GetCurrentDirectory().Replace(@"bin\Debug", @"connectionStrings.config"));
+        
+        private string NumeraxialConnectionString = NumeraxialConnection.ConnectionString;
+        //private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+
+        private string IntradayConnectionString = IntradayConnection.ConnectionString;
+        //private string IntradayConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
         private string[] currentSettings = new string[5];
         /**
@@ -29,7 +38,7 @@ namespace csharprestClient
         private List<string> listFiles = new List<string>();
 
         // Days this app should NOT update records (to avoid getting duplicate data)
-        private DateTime[] holidays =
+        private DateTime[] americanHolidays =
         {
             new DateTime(2017, 4, 14),  // Good Friday
             new DateTime(2017, 5, 29),  // Memorial Day
@@ -39,9 +48,17 @@ namespace csharprestClient
             new DateTime(2017, 11, 23), // Thanksgiving Day
             new DateTime(2017, 11, 24), // Early close (closes at 1pm)
             new DateTime(2017, 12, 25)  // Christmas Day
+            
+        };
+
+
+        private int[,] closingTimes = new int[,]
+        {
+            {20, 24}, // For American exchanges.
+            {13, 50 } // For German exchanges
+            
         };
         
-
         public GoogleApiCaller()
         {
             reg.SetValue("Numeraxial Data Streamer", Application.ExecutablePath.ToString());
@@ -73,26 +90,104 @@ namespace csharprestClient
 
         private void startTimer()
         {
+            bool[] wasUpdatedRecently = new bool[3];
+            //debugOutPut(NumeraxialConnectionString);
+            //debugOutPut(IntradayConnectionString);
             Task.Run(() =>
             {
                 while (true)
                 {
-                    if ((DateTime.Now.Hour == updateHour && DateTime.Now.Minute == updateMinute) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday())
+                    // Updater for American stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[0])
                     {
-                        debugOutPut("-> Updating records. It's now: " + DateTime.Now);
-                        updateRecords();
-                        debugOutPut("-> Finished updating records. It's now: " + DateTime.Now);
+                        debugOutPut("Fetching USA stocks. It's now: " + DateTime.Now);
+                        startUpdating("USA");
+                        wasUpdatedRecently[0] = true;
                     }
-                    Thread.Sleep(55000);
+
+                    else
+                    {
+                        wasUpdatedRecently[0] = false;
+                    }
+
+                    // Updater for German stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    {
+                        debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
+                        startUpdating("Germany");
+                        wasUpdatedRecently[1] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[1] = false;
+                    }
+
+                    // Updater for Indian stocks.
+                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
+                    {
+                        debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
+                        startUpdating("India");
+                        wasUpdatedRecently[2] = true;
+                    }
+                    else
+                    {
+                        wasUpdatedRecently[2] = false;
+                    }
+                    Thread.Sleep(30000);
+                }
+
+            });
+
+        }
+
+        private void startUpdating(string country)
+        {
+            Task.Run(() =>
+            {
+                SqlDataReader reader;
+                using (SqlConnection connection = new SqlConnection(NumeraxialConnectionString))
+                {
+                    string queryString = String.Format("SELECT * FROM Stock_List1 WHERE Country = '{0}'", country);
+                    connection.Open();
+                    using (SqlCommand cmd = new SqlCommand(queryString, connection))
+                    {
+                        try
+                        {
+                            reader = cmd.ExecuteReader();
+                            while (reader.Read())
+                            {
+
+                                IDataRecord record = (IDataRecord)reader;
+                                
+                                if ((bool) record[8])   // If the table has been created, update it.
+                                {
+                                    //debugOutPut("Trying to update table.");
+                                    DbUpdater.updateTable(record, IntradayConnectionString, NumeraxialConnectionString);
+                                    //debugOutPut("Updating table..");
+                                }
+                                else                    // Else, pull last 2 weeks of data and create the table.
+                                {
+                                    //debugOutPut("Trying to create table.");
+                                    DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
+                                    //debugOutPut("Creating table..");
+                                }
+                                //Thread.Sleep(10000);
+                            }
+                        } 
+                        catch (Exception e)
+                        {
+                            debugOutPut(e.ToString());
+                        }
+                    }
                 }
             });
         }
 
         private bool todayIsNotHoliday()
         {
-            for (int i = 0; i < holidays.Length; i++)
+            for (int i = 0; i < americanHolidays.Length; i++)
             {
-                if (DateTime.Now.Date == holidays[i].Date)
+                if (DateTime.Now.Date == americanHolidays[i].Date)
                     return false;
             }
             return true;
@@ -142,34 +237,6 @@ namespace csharprestClient
             catch (Exception ex)
             {
                 debugOutPut("-> There was an error " + txtListFile.Text + ": " + ex.ToString());
-            }
-        }
-
-        private void loadSettings(string cf, string sf) 
-        {
-            if (!Directory.Exists(cf))
-            {
-                Directory.CreateDirectory(cf);
-                if (!File.Exists(sf))
-                {
-                    File.Create(sf);
-                }
-            }
-            else
-            {
-                // Load previous session's settings to be our current session's settings
-                currentSettings = File.ReadAllLines(sf); // This will assign 'currentSettings' a new string array
-                
-                // Load each ticker-list text file to the queue
-                listFiles = new List<string>(currentSettings[0].Split(','));
-                foreach (string listFile in listFiles)
-                {
-                    addListToQueue(listFile);
-                }
-
-                // Load update-time from last session
-                string[] updateTime = currentSettings[1].Split(',');
-                setUpdateTime(updateTime[0], updateTime[1]);
             }
         }
 
