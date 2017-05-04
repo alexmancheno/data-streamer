@@ -54,7 +54,7 @@ namespace csharprestClient
 
         private int[,] closingTimes = new int[,]
         {
-            {16, 30}, // For American exchanges.
+            {20, 24}, // For American exchanges.
             {13, 50 } // For German exchanges
             
         };

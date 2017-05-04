@@ -160,8 +160,6 @@ namespace csharprestClient
                                             string formattedDate = date.ToString("d");
                                             string formattedTime = date.ToString("HH:mm:ss");
 
-                                            Console.WriteLine(formattedDate + "     " + formattedTime);
-
                                             command.CommandText = String.Format("INSERT INTO {0} ([Date], [Time], [Close], [High], [Low], [Open], [Volume]) VALUES ('{1}', '{2}', {3}, {4}, {5}, {6}, {7});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
                                             command.ExecuteNonQuery();
                                         }
