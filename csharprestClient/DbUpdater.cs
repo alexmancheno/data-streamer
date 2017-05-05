@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace csharprestClient
@@ -18,7 +19,7 @@ namespace csharprestClient
             return epoch.AddSeconds(unixTime);
         }
 
-        public static void updateTable(IDataRecord record, string IntradayConnectionString, string NumeraxialConnectionString)
+        public static void updateTable(DataRow record, string IntradayConnectionString)
         {
             RestClient rClient = new RestClient();
             rClient.endPoint = "http://chartapi.finance.yahoo.com/instrument/1.0/[TICKER]/chartdata;type=quote;range=1d/csv";
@@ -51,7 +52,7 @@ namespace csharprestClient
                                     string[] words = line.Split(separatingChars, StringSplitOptions.RemoveEmptyEntries);
                                     if (line.Contains("error"))
                                     {
-                                        command.CommandText = String.Format("UPDATE Stock_List1 SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
+                                        command.CommandText = String.Format("UPDATE Stock_List SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
                                         break;
                                     }
 
@@ -89,7 +90,7 @@ namespace csharprestClient
             }
         }
 
-        public static void createTable(IDataRecord record, string IntradayConnectionString, string NumeraxialConnectionString)
+        public static void createTable(DataRow record, string IntradayConnectionString)
         {
 
             RestClient rClient = new RestClient();
@@ -110,25 +111,22 @@ namespace csharprestClient
                             using (SqlConnection connection = new SqlConnection(IntradayConnectionString))
                             {
                                 string nameOfTable = (string) record[2];
+                                string primaryKey = nameOfTable + "_data_ID";
+                                int stockID = (int) record[0];
 
-                                string createTableCommand = String.Format("CREATE TABLE {0} ([Date] date, [Time] time, [Close] smallmoney, [High] smallmoney, [Low] smallmoney, [Open] smallmoney, [Volume] int);", nameOfTable);
+                                SqlStatements sqs = new SqlStatements();
+                                sqs.createTableSqlCommand(nameOfTable, primaryKey, IntradayConnectionString);
 
-                                string updateInitializedColumnString = String.Format("UPDATE Stock_List1 SET Initialized = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
+                                string updateInitializedColumnString = String.Format("UPDATE Stock_List SET Initialized = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
 
-                                SqlCommand command = new SqlCommand(createTableCommand, connection);
-                                Console.WriteLine("Attempting to create table for: " + nameOfTable + ", Stock_ID: " + (int)record[0]);
-                                connection.Open();
-                                command.ExecuteNonQuery();
+                                Console.WriteLine("Attempting to update Initialized column");
+                                // Execute the command to update 'Initialed' column from the 'Stock_List' table:
 
-                                using (SqlConnection NumeraxialConnection = new SqlConnection(NumeraxialConnectionString))
-                                {
-                                    using (SqlCommand updateCommand = new SqlCommand(updateInitializedColumnString, NumeraxialConnection))
-                                    {
-                                        NumeraxialConnection.Open();
-                                        updateCommand.ExecuteNonQuery();
-                                    }
-                                }
+                                SqlCommand command = new SqlCommand(updateInitializedColumnString, connection);
 
+                                command.CommandText = updateInitializedColumnString;
+                                //command.ExecuteNonQuery();
+        
                                 string line;
                                 char[] separatingChars = { ',' };
                                 string substringToDetect = "volume:";
@@ -141,7 +139,7 @@ namespace csharprestClient
 
                                     if (line.Contains("error"))
                                     {
-                                        command.CommandText = String.Format("UPDATE Stock_List1 SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
+                                        command.CommandText = String.Format("UPDATE Stock_List SET Error = 1 WHERE Storage_Ticker = '{0}';", nameOfTable);
                                         break;
                                     }
 
@@ -160,12 +158,14 @@ namespace csharprestClient
                                             string formattedDate = date.ToString("d");
                                             string formattedTime = date.ToString("HH:mm:ss");
 
-                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Time], [Close], [High], [Low], [Open], [Volume]) VALUES ('{1}', '{2}', {3}, {4}, {5}, {6}, {7});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5]);
+                                            Console.WriteLine(formattedDate + " - " + formattedTime + " - " + words[1] + " - " +words[2] + " - " + words[3] + " - " + words[4] + " - " + words[5]);
+
+                                            command.CommandText = String.Format("INSERT INTO {0} ([Date], [Time], [Close], [High], [Low], [Open], [Volume], Stock_ID) VALUES ('{1}', '{2}', {3}, {4}, {5}, {6}, {7}, {8});", nameOfTable, formattedDate, formattedTime, words[1], words[2], words[3], words[4], words[5], stockID);
                                             command.ExecuteNonQuery();
                                         }
                                         catch (Exception e)
                                         {
-                                            Console.WriteLine("Error trying to insert into \n"+ (string) record[1] + ": "+ e.StackTrace);
+                                            Console.WriteLine("Error trying to insert into "+ (string) record[1] + " - "+ e.InnerException + " : \n"+ e.StackTrace);
                                         }
                                     }
                                     if (line.Contains(substringToDetect)) substringDetectedPreviousLine = true;

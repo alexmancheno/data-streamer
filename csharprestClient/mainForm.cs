@@ -20,12 +20,8 @@ namespace csharprestClient
         private int updateHour, updateMinute;
         private RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
         private static ConnectionStringSettings IntradayConnection = ConfigurationManager.ConnectionStrings["Intraday"];
-        private static ConnectionStringSettings NumeraxialConnection = ConfigurationManager.ConnectionStrings["Numeraxial"];
         //private static string configPath = (Directory.GetCurrentDirectory().Replace(@"bin\Debug", @"connectionStrings.config"));
-        
-        private string NumeraxialConnectionString = NumeraxialConnection.ConnectionString;
-        //private string NumeraxialConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Intraday;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
-
+       
         private string IntradayConnectionString = IntradayConnection.ConnectionString;
         //private string IntradayConnectionString = @"Data Source=ALEX-PC;Initial Catalog=Numeraxial;Integrated Security=True;Connect Timeout=15;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
@@ -54,7 +50,7 @@ namespace csharprestClient
 
         private int[,] closingTimes = new int[,]
         {
-            {20, 24}, // For American exchanges.
+            {10, 29}, // For American exchanges.
             {13, 50 } // For German exchanges
             
         };
@@ -91,7 +87,6 @@ namespace csharprestClient
         private void startTimer()
         {
             bool[] wasUpdatedRecently = new bool[3];
-            //debugOutPut(NumeraxialConnectionString);
             //debugOutPut(IntradayConnectionString);
             Task.Run(() =>
             {
@@ -110,75 +105,61 @@ namespace csharprestClient
                         wasUpdatedRecently[0] = false;
                     }
 
-                    // Updater for German stocks.
-                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
-                    {
-                        debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
-                        startUpdating("Germany");
-                        wasUpdatedRecently[1] = true;
-                    }
-                    else
-                    {
-                        wasUpdatedRecently[1] = false;
-                    }
+                    //// Updater for German stocks.
+                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[1])
+                    //{
+                    //    debugOutPut("Fetching German stocks. It's now: " + DateTime.Now);
+                    //    startUpdating("Germany");
+                    //    wasUpdatedRecently[1] = true;
+                    //}
+                    //else
+                    //{
+                    //    wasUpdatedRecently[1] = false;
+                    //}
 
-                    // Updater for Indian stocks.
-                    if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
-                    {
-                        debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
-                        startUpdating("India");
-                        wasUpdatedRecently[2] = true;
-                    }
-                    else
-                    {
-                        wasUpdatedRecently[2] = false;
-                    }
+                    //// Updater for Indian stocks.
+                    //if ((DateTime.Now.Hour == closingTimes[0, 0] && DateTime.Now.Minute == closingTimes[0, 1]) && DateTime.Now.DayOfWeek != DayOfWeek.Saturday && DateTime.Now.DayOfWeek != DayOfWeek.Sunday && todayIsNotHoliday() && !wasUpdatedRecently[2])
+                    //{
+                    //    debugOutPut("Fetching Indian stocks. It's now: " + DateTime.Now);
+                    //    startUpdating("India");
+                    //    wasUpdatedRecently[2] = true;
+                    //}
+                    //else
+                    //{
+                    //    wasUpdatedRecently[2] = false;
+                    //}
                     Thread.Sleep(30000);
                 }
-
             });
-
         }
 
         private void startUpdating(string country)
         {
             Task.Run(() =>
             {
-                SqlDataReader reader;
-                using (SqlConnection connection = new SqlConnection(NumeraxialConnectionString))
-                {
-                    string queryString = String.Format("SELECT * FROM Stock_List1 WHERE Country = '{0}'", country);
-                    connection.Open();
-                    using (SqlCommand cmd = new SqlCommand(queryString, connection))
-                    {
-                        try
-                        {
-                            reader = cmd.ExecuteReader();
-                            while (reader.Read())
-                            {
+                SqlDataAdapter da = new SqlDataAdapter();
+                DataSet ds = new DataSet();
+                DataTable dt = new DataTable();
 
-                                IDataRecord record = (IDataRecord)reader;
-                                
-                                if ((bool) record[8])   // If the table has been created, update it.
-                                {
-                                    //debugOutPut("Trying to update table.");
-                                    DbUpdater.updateTable(record, IntradayConnectionString, NumeraxialConnectionString);
-                                    //debugOutPut("Updating table..");
-                                }
-                                else                    // Else, pull last 2 weeks of data and create the table.
-                                {
-                                    //debugOutPut("Trying to create table.");
-                                    DbUpdater.createTable(record, IntradayConnectionString, NumeraxialConnectionString);
-                                    //debugOutPut("Creating table..");
-                                }
-                                //Thread.Sleep(10000);
-                            }
-                        } 
-                        catch (Exception e)
-                        {
-                            debugOutPut(e.ToString());
-                        }
+                using (SqlConnection connection = new SqlConnection(IntradayConnectionString))
+                {
+                    da.SelectCommand = new SqlCommand(String.Format(@"SELECT * FROM Stock_List WHERE COUNTRY = '{0}'", country), connection);
+                    da.Fill(ds, "Country_Table");
+                    dt = ds.Tables["Country_Table"];
+                }
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    if ((bool) row[8])
+                    {
+                        DbUpdater.updateTable(row, IntradayConnectionString);
                     }
+
+                    else
+                    {
+                        DbUpdater.createTable(row, IntradayConnectionString);
+                    }
+                    Thread.Sleep(2138012983);
                 }
             });
         }
